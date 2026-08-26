@@ -15,30 +15,18 @@ export interface Prenda {
   stock: number;
 }
 
-// Trae todas las prendas del backend (para la pantalla de browse)
+// Simulación del backend en memoria. Cuando esté la API real, esto se
+// reemplaza por fetch('/api/prendas') sin tocar la firma de las funciones.
+let prendas: Prenda[] = [];
+
+// Trae todas las prendas (para la pantalla de browse)
 export async function getPrendas(): Promise<Prenda[]> {
-  const response = await fetch('/api/prendas');
-
-  if (!response.ok) {
-    throw new Error('Error al traer las prendas');
-  }
-
-  const data: Prenda[] = await response.json();
-  return data;
+  return prendas;
 }
 
 // Crea una prenda/post nueva
 export async function createPost(nuevaPrenda: Omit<Prenda, 'id' | 'likes'>): Promise<Prenda> {
-  const response = await fetch('/api/prendas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(nuevaPrenda),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al crear la prenda');
-  }
-
-  const data: Prenda = await response.json();
-  return data;
+  const prenda: Prenda = { ...nuevaPrenda, id: String(Date.now()), likes: 0 };
+  prendas = [prenda, ...prendas];
+  return prenda;
 }
