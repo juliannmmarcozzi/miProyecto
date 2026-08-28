@@ -1,14 +1,18 @@
+import { Link } from 'react-router-dom';
 import type { Prenda } from '../api/prendas';
 
 export default function PostCard({ prenda }: { prenda: Prenda }) {
   return (
-    <div className="bg-white border border-umber/15 rounded-2xl overflow-hidden">
+    <Link
+      to={`/prenda/${prenda.id}`}
+      className="block bg-white border border-umber/15 rounded-2xl overflow-hidden"
+    >
       <div className="relative aspect-square bg-umber/10">
         {prenda.imagenes[0] ? (
           <img
             src={prenda.imagenes[0]}
-            alt={prenda.descripcion}
-            className="w-full h-full object-cover"
+            alt={prenda.titulo}
+            className="w-full h-full object-contain"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-umber/50 text-sm">
@@ -22,7 +26,7 @@ export default function PostCard({ prenda }: { prenda: Prenda }) {
       </div>
 
       <div className="p-3">
-        <p className="font-medium text-sm text-ink truncate">{prenda.descripcion}</p>
+        <p className="font-display font-bold text-base text-ink truncate">{prenda.titulo}</p>
         <p className="text-xs text-umber/70 mt-0.5">
           {prenda.marca} · Talle {prenda.talle} · {prenda.color}
         </p>
@@ -38,11 +42,12 @@ export default function PostCard({ prenda }: { prenda: Prenda }) {
               </span>
             ))}
           </div>
-          <span className="flex items-center gap-1 text-xs text-clay">
-            ♥ {prenda.likes}
-          </span>
+          <div className="flex items-center gap-2 text-xs text-umber/70 shrink-0">
+            <span>👁 {prenda.visualizaciones}</span>
+            <span className="text-clay">♥ {prenda.likes}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -20,6 +20,7 @@ export default function CreatePostModal({
     const f = e.target;
 
     await createPost({
+      titulo: f.titulo.value,
       descripcion: f.descripcion.value,
       precio: Number(f.precio.value),
       imagenes: preview ? [preview] : [],
@@ -66,6 +67,7 @@ export default function CreatePostModal({
           <div className="md:w-1/2 p-5 flex flex-col gap-2 max-h-[80vh] overflow-y-auto">
             <h2 className="font-display font-bold text-lg text-ink mb-1">Publicar prenda</h2>
 
+            <input name="titulo" placeholder="Título" required className={inputClass} />
             <input name="descripcion" placeholder="Descripción" required className={inputClass} />
             <input name="precio" type="number" placeholder="Precio" required className={inputClass} />
             <input name="tipoPrenda" placeholder="Tipo de prenda" required className={inputClass} />
@@ -76,8 +78,19 @@ export default function CreatePostModal({
               <input name="talle" placeholder="Talle" required className={inputClass + ' w-20'} />
             </div>
 
-            <input name="estado" placeholder="Estado (nuevo, usado...)" required className={inputClass} />
-            <input name="genero" placeholder="Género" required className={inputClass} />
+            <select name="estado" required defaultValue="" className={inputClass}>
+              <option value="" disabled>Estado</option>
+              <option value="Nuevo">Nuevo</option>
+              <option value="Usado">Usado</option>
+            </select>
+
+            <select name="genero" required defaultValue="" className={inputClass}>
+              <option value="" disabled>Género</option>
+              <option value="Hombre">Hombre</option>
+              <option value="Mujer">Mujer</option>
+              <option value="Unisex">Unisex</option>
+            </select>
+
             <input name="stock" type="number" placeholder="Stock" required className={inputClass} />
             <input name="tags" placeholder="Tags (separados por coma)" className={inputClass} />
 
