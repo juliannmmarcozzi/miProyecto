@@ -1,74 +1,50 @@
 import { useEffect, useState } from 'react';
-import { createPost, getPrendas, type Prenda } from '../features/browse/api/prendas';
+import { getPrendas, type Prenda } from '../features/browse/api/prendas';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import HeaderActions from '../components/HeaderActions';
+import PostCard from '../features/browse/components/postCard';
+import FilterSidebar from '../features/browse/components/filterSideBar';
+import CreatePostModal from '../features/browse/components/createPostModal';
 
 export default function Browser() {
   const [prendas, setPrendas] = useState<Prenda[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    getPrendas().then(setPrendas);
-  }, []);
-
-  async function handleSubmit(e: any) {
-    e.preventDefault();
-    const f = e.target;
-
-    await createPost({
-      descripcion: f.descripcion.value,
-      precio: Number(f.precio.value),
-      imagenes: f.imagen.value ? [f.imagen.value] : [],
-      tipoPrenda: f.tipoPrenda.value,
-      marca: f.marca.value,
-      color: f.color.value,
-      talle: f.talle.value,
-      estado: f.estado.value,
-      tags: f.tags.value.split(',').map((t: string) => t.trim()).filter(Boolean),
-      genero: f.genero.value,
-      stock: Number(f.stock.value),
-    });
-
-    f.reset();
+  async function loadPrendas() {
     setPrendas(await getPrendas());
   }
 
-  return (
-    <div className="p-4 max-w-md mx-auto bg-white text-black min-h-screen">
-      <h1 className="text-xl font-bold mb-2">Publicar prenda</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-6">
-        <input name="descripcion" placeholder="Descripción" required className="border border-gray-400 p-2" />
-        <input name="precio" type="number" placeholder="Precio" required className="border border-gray-400 p-2" />
-        <input name="imagen" placeholder="Imagen (URL)" className="border border-gray-400 p-2" />
-        <input name="tipoPrenda" placeholder="Tipo de prenda" required className="border border-gray-400 p-2" />
-        <input name="marca" placeholder="Marca" required className="border border-gray-400 p-2" />
-        <input name="color" placeholder="Color" required className="border border-gray-400 p-2" />
-        <input name="talle" placeholder="Talle" required className="border border-gray-400 p-2" />
-        <input name="estado" placeholder="Estado" required className="border border-gray-400 p-2" />
-        <input name="tags" placeholder="Tags (separados por coma)" className="border border-gray-400 p-2" />
-        <input name="genero" placeholder="Género" required className="border border-gray-400 p-2" />
-        <input name="stock" type="number" placeholder="Stock" required className="border border-gray-400 p-2" />
-        <button type="submit" className="bg-blue-600 text-white p-2">Publicar</button>
-      </form>
+  useEffect(() => {
+    loadPrendas();
+  }, []);
 
-      <h1 className="text-xl font-bold mb-2">Prendas publicadas</h1>
-      <div className="flex flex-col gap-4">
-        {prendas.map((prenda) => (
-          <div key={prenda.id} className="border border-gray-400 p-2">
-            {prenda.imagenes[0] && (
-              <img src={prenda.imagenes[0]} alt="" className="w-full h-40 object-contain mb-2" />
-            )}
-            <p>{prenda.descripcion}</p>
-            <p>${prenda.precio}</p>
-            <p>Tipo: {prenda.tipoPrenda}</p>
-            <p>Marca: {prenda.marca}</p>
-            <p>Color: {prenda.color}</p>
-            <p>Talle: {prenda.talle}</p>
-            <p>Estado: {prenda.estado}</p>
-            <p>Género: {prenda.genero}</p>
-            <p>Stock: {prenda.stock}</p>
-            <p>Tags: {prenda.tags.join(', ')}</p>
-            <p>Likes: {prenda.likes}</p>
+  return (
+    <div className="min-h-screen bg-cream text-ink flex flex-col">
+      <Header
+        actions={
+          <HeaderActions onFilters={() => setFiltersOpen(true)} onCreate={() => setModalOpen(true)} />
+        }
+      />
+
+      <main className="flex-1 p-4">
+        {prendas.length === 0 ? (
+          <p className="text-umber/60 text-sm py-12 text-center">
+            Todavía no hay prendas publicadas. Tocá el + para cargar la primera.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {prendas.map((prenda) => (
+              <PostCard key={prenda.id} prenda={prenda} />
+            ))}
           </div>
-        ))}
-      </div>
+        )}
+      </main>
+
+      <Footer />
+      <FilterSidebar open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      {modalOpen && <CreatePostModal onClose={() => setModalOpen(false)} onCreated={loadPrendas} />}
     </div>
   );
 }

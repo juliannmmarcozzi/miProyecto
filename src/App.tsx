@@ -1,5 +1,12 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Browser from './pages/Browser';
 
 export default function App() {
-  return <Browser />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Browser />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
