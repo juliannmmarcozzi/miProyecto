@@ -33,7 +33,7 @@ export default function PostCard({ prenda }: { prenda: Prenda }) {
 
         <div className="flex items-center justify-between mt-2">
           <div className="flex flex-wrap gap-1">
-            {prenda.tags.slice(0, 2).map((tag) => (
+            {prenda.tags.map((tag) => (
               <span
                 key={tag}
                 className="text-[10px] font-mono uppercase tracking-wide bg-forest/10 text-forest px-1.5 py-0.5 rounded"

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function HeaderActions({
   onFilters,
   onCreate,
@@ -32,7 +34,8 @@ export default function HeaderActions({
         +
       </button>
 
-      <button
+      <Link
+        to="/login"
         className="w-9 h-9 rounded-full bg-cream/10 hover:bg-cream/15 flex items-center justify-center"
         aria-label="Cuenta"
       >
@@ -40,7 +43,7 @@ export default function HeaderActions({
           <circle cx="12" cy="8" r="4" />
           <path d="M4 20a8 8 0 0 1 16 0" />
         </svg>
-      </button>
+      </Link>
     </>
   );
 }
