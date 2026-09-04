@@ -9,14 +9,24 @@ export default function CreatePostModal({
   onCreated: () => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   function handleImageChange(e: any) {
     const file = e.target.files?.[0];
-    if (file) setPreview(URL.createObjectURL(file));
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+      setImageError(false);
+    }
   }
 
   async function handleSubmit(e: any) {
     e.preventDefault();
+
+    if (!preview) {
+      setImageError(true);
+      return;
+    }
+
     const f = e.target;
 
     await createPost({
@@ -53,12 +63,17 @@ export default function CreatePostModal({
         </button>
 
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row">
-          <label className="md:w-1/2 aspect-square bg-umber/10 flex items-center justify-center cursor-pointer relative overflow-hidden">
+          <label
+            className={
+              'md:w-1/2 aspect-square bg-umber/10 flex items-center justify-center cursor-pointer relative overflow-hidden' +
+              (imageError ? ' ring-2 ring-clay' : '')
+            }
+          >
             {preview ? (
               <img src={preview} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-umber/60 text-sm text-center px-6">
-                Tocá para subir una foto de la prenda
+              <span className={'text-sm text-center px-6' + (imageError ? ' text-clay' : ' text-umber/60')}>
+                {imageError ? 'Subí una foto de la prenda' : 'Tocá para subir una foto de la prenda'}
               </span>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
@@ -92,7 +107,7 @@ export default function CreatePostModal({
             </select>
 
             <input name="stock" type="number" placeholder="Stock" required className={inputClass} />
-            <input name="tags" placeholder="Tags (separados por coma)" className={inputClass} />
+            <input name="tags" placeholder="Tags (separados por coma)" required className={inputClass} />
 
             <button
               type="submit"

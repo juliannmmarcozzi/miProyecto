@@ -20,33 +20,32 @@ export interface Prenda {
 }
 
 // Datos que pone el usuario al publicar. El resto (id, likes, visualizaciones,
-// usuario, fechaPublicacion) lo genera el sistema.
+// usuario, fechaPublicacion) lo genera el backend.
 type NuevaPrenda = Omit<Prenda, 'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'>;
 
-// Simulación del backend en memoria. Cuando esté la API real, esto se
-// reemplaza por fetch('/api/prendas') sin tocar la firma de las funciones.
-let prendas: Prenda[] = [];
+// URL del backend. Está en otro repo, así que si corre en otro puerto o
+// ya está deployado, solo hay que cambiar esta línea.
+const API_URL = 'http://localhost:3001';
 
 // Trae todas las prendas (para la pantalla de browse)
 export async function getPrendas(): Promise<Prenda[]> {
-  return prendas;
+  const res = await fetch(`${API_URL}/api/prendas`);
+  return res.json();
 }
 
 // Trae una prenda por id (para la vista ampliada del artículo)
 export async function getPrenda(id: string): Promise<Prenda | undefined> {
-  return prendas.find((prenda) => prenda.id === id);
+  const res = await fetch(`${API_URL}/api/prendas/${id}`);
+  if (!res.ok) return undefined;
+  return res.json();
 }
 
 // Crea una prenda/post nueva
 export async function createPost(nuevaPrenda: NuevaPrenda): Promise<Prenda> {
-  const prenda: Prenda = {
-    ...nuevaPrenda,
-    id: String(Date.now()),
-    likes: 0,
-    visualizaciones: 0,
-    usuario: 'Vos',
-    fechaPublicacion: new Date().toISOString(),
-  };
-  prendas = [prenda, ...prendas];
-  return prenda;
+  const res = await fetch(`${API_URL}/api/prendas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(nuevaPrenda),
+  });
+  return res.json();
 }
