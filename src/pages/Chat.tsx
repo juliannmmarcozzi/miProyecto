@@ -2,16 +2,42 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getPrenda, type Prenda } from '../features/browse/api/prendas';
 
+const API_URL = 'http://localhost:3001';
+
+interface Mensaje {
+  texto: string;
+  usuario: string;
+}
+
 export default function Chat() {
   const { id } = useParams();
   const [prenda, setPrenda] = useState<Prenda | null>(null);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
 
   useEffect(() => {
-    if (id) getPrenda(id).then((p) => setPrenda(p ?? null));
+    if (id) {
+      getPrenda(id).then((p) => setPrenda(p ?? null));
+      fetch(`${API_URL}/api/mensajes/${id}`)
+        .then((res) => res.json())
+        .then(setMensajes);
+    }
   }, [id]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const f = e.target as HTMLFormElement;
+    const texto = f.mensaje.value;
+    if (!texto) return;
+
+    const res = await fetch(`${API_URL}/api/mensajes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prendaId: id, texto }),
+    });
+    const mensaje = await res.json();
+
+    setMensajes((prev) => [...prev, mensaje]);
+    f.reset();
   }
 
   return (
@@ -55,7 +81,14 @@ export default function Chat() {
         </Link>
       )}
 
-      <main className="flex-1 overflow-y-auto p-4" />
+      <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+        {mensajes.map((m, i) => (
+          <div key={i} className="bg-white border border-umber/15 rounded-lg px-3 py-2 max-w-[80%]">
+            <p className="text-[11px] text-umber/50">{m.usuario}</p>
+            <p className="text-sm text-ink">{m.texto}</p>
+          </div>
+        ))}
+      </main>
 
       <form
         onSubmit={handleSubmit}

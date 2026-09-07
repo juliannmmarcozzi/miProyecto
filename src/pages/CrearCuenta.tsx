@@ -2,14 +2,28 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+const API_URL = 'http://localhost:3001';
+
 export default function CrearCuenta() {
   const navigate = useNavigate();
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    navigate('/');
+    const f = e.target as HTMLFormElement;
+
+    const res = await fetch(`${API_URL}/api/usuarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: f.usuario.value,
+        email: f.email.value,
+        password: f.password.value,
+      }),
+    });
+
+    if (res.ok) navigate('/');
   }
 
   return (
