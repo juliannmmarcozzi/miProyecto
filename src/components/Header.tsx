@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
+import NavMenu from './NavMenu';
 
 export default function Header({ actions }: { actions?: ReactNode }) {
   return (
     <header className="bg-ink text-cream px-4 py-3 flex items-center gap-4 sticky top-0 z-30">
+      <NavMenu />
+
       <span className="bg-clay text-white font-display font-bold text-sm px-3 py-1.5 rounded-lg shrink-0">
         Logo
       </span>

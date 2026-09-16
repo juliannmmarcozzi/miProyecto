@@ -1,30 +1,68 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-
-const API_URL = 'http://localhost:3001';
+import { checkUsuarioDisponible, crearCuenta, USUARIO_MAX_LENGTH } from '../features/auth/api/usuarios';
 
 export default function CrearCuenta() {
   const navigate = useNavigate();
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
+  const [usuario, setUsuario] = useState('');
+  const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
+  const [checkingUsuario, setCheckingUsuario] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const nombre = usuario.trim();
+    if (!nombre) {
+      setUsuarioDisponible(null);
+      setCheckingUsuario(false);
+      return;
+    }
+
+    setCheckingUsuario(true);
+    const timeoutId = setTimeout(async () => {
+      const disponible = await checkUsuarioDisponible(nombre);
+      setUsuarioDisponible(disponible);
+      setCheckingUsuario(false);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [usuario]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
     const f = e.target as HTMLFormElement;
 
-    const res = await fetch(`${API_URL}/api/usuarios`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuario: f.usuario.value,
-        email: f.email.value,
-        password: f.password.value,
-      }),
+    if (usuario.trim().length > USUARIO_MAX_LENGTH || usuarioDisponible === false) return;
+
+    const res = await crearCuenta({
+      usuario: usuario.trim(),
+      email: f.email.value,
+      telefono: f.telefono.value,
+      password: f.password.value,
     });
 
-    if (res.ok) navigate('/');
+    if (res.ok) {
+      navigate('/');
+    } else if (res.status === 409) {
+      setUsuarioDisponible(false);
+      setError('Ese nombre de usuario ya está en uso.');
+    } else {
+      setError('No se pudo crear la cuenta. Intentá de nuevo.');
+    }
   }
+
+  const usuarioMensaje = checkingUsuario
+    ? 'Verificando disponibilidad...'
+    : usuarioDisponible === false
+      ? 'Ese nombre de usuario ya está en uso'
+      : usuarioDisponible === true
+        ? 'Nombre de usuario disponible'
+        : '';
 
   return (
     <div className="min-h-screen bg-cream text-ink flex flex-col">
@@ -48,8 +86,33 @@ export default function CrearCuenta() {
           </h1>
 
           <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <input name="usuario" placeholder="Usuario" className={inputClass} />
+            <div className="flex flex-col gap-1">
+              <input
+                name="usuario"
+                placeholder="Usuario"
+                required
+                maxLength={USUARIO_MAX_LENGTH}
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
+                className={inputClass}
+              />
+              {usuarioMensaje && (
+                <p
+                  className={`text-xs px-1 ${
+                    usuarioDisponible === false
+                      ? 'text-red-600'
+                      : usuarioDisponible === true
+                        ? 'text-forest'
+                        : 'text-umber/50'
+                  }`}
+                >
+                  {usuarioMensaje}
+                </p>
+              )}
+            </div>
+
             <input name="email" type="email" placeholder="Email" className={inputClass} />
+            <input name="telefono" type="tel" placeholder="Teléfono" required className={inputClass} />
             <input name="password" type="password" placeholder="Contraseña" className={inputClass} />
             <input
               name="confirmPassword"
@@ -58,9 +121,12 @@ export default function CrearCuenta() {
               className={inputClass}
             />
 
+            {error && <p className="text-xs text-red-600 px-1">{error}</p>}
+
             <button
               type="submit"
-              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors"
+              disabled={checkingUsuario || usuarioDisponible === false}
+              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Crear cuenta
             </button>

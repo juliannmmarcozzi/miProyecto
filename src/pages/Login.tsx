@@ -9,20 +9,23 @@ export default function Login() {
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: any) {
     e.preventDefault();
-    const f = e.target as HTMLFormElement;
 
     const res = await fetch(`${API_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        usuario: f.usuario.value,
-        password: f.password.value,
+        usuario: e.target.usuario.value,
+        password: e.target.password.value,
       }),
     });
 
-    if (res.ok) navigate('/');
+    if (res.status == 200) {
+      navigate('/');
+    } else {
+      alert('Usuario o contraseña incorrectos');
+    }
   }
 
   return (
