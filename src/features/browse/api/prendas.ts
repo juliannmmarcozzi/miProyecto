@@ -1,4 +1,4 @@
-// Estructura de una Prenda, según el DER del backend
+// estructura de una prenda
 export interface Prenda {
   id: string;
   titulo: string;
