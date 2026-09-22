@@ -9,7 +9,7 @@ export interface NuevaCuenta {
   password: string;
 }
 
-// consulta al backend si el nombre de usuario ya está en uso.
+// consulta al back si el nombre de usuario ya está en uso.
 export async function checkUsuarioDisponible(usuario: string): Promise<boolean> {
   const res = await fetch(`${API_URL}/api/usuarios/disponible?usuario=${encodeURIComponent(usuario)}`);
   if (!res.ok) return true;

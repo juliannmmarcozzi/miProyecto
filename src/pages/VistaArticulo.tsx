@@ -5,14 +5,19 @@ import { getPrenda, type Prenda } from '../features/browse/api/prendas';
 export default function VistaArticulo() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // guarda la prenda
   const [prenda, setPrenda] = useState<Prenda | null>(null);
 
+  // busca la prenda cuando cambia el id
   useEffect(() => {
     if (id) getPrenda(id).then((p) => setPrenda(p ?? null));
   }, [id]);
 
+  // muestra  mensaje si no se encontro la prenda
   if (!prenda) return <p className="p-4 text-umber/60">Prenda no encontrada.</p>;
 
+  // datos que se muestran en la tabla specs
   const specs = [
     { label: 'Marca', value: prenda.marca },
     { label: 'Tipo', value: prenda.tipoPrenda },
@@ -31,7 +36,15 @@ export default function VistaArticulo() {
         aria-label="Volver al browser"
         className="w-9 h-9 rounded-full bg-ink/5 hover:bg-ink/10 flex items-center justify-center mb-4"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-ink">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-5 h-5 text-ink"
+        >
           <path d="M19 12H5" />
           <path d="M12 19l-7-7 7-7" />
         </svg>
@@ -40,12 +53,17 @@ export default function VistaArticulo() {
       <div className="flex flex-col md:flex-row gap-6">
         <div className="md:w-1/2 aspect-square bg-umber/10 rounded-2xl overflow-hidden shrink-0">
           {prenda.imagenes[0] && (
-            <img src={prenda.imagenes[0]} alt={prenda.titulo} className="w-full h-full object-contain" />
+            <img
+              src={prenda.imagenes[0]}
+              alt={prenda.titulo}
+              className="w-full h-full object-contain"
+            />
           )}
         </div>
 
         <div className="md:w-1/2 flex flex-col">
           <h1 className="font-display font-bold text-2xl text-ink">{prenda.titulo}</h1>
+
           <p className="text-sm text-umber/70 mt-1">
             Publicado por {prenda.usuario} · 👁 {prenda.visualizaciones} · ♥ {prenda.likes}
           </p>
@@ -54,7 +72,10 @@ export default function VistaArticulo() {
 
           <div className="border border-umber/15 rounded-2xl mt-4 divide-y divide-umber/10 overflow-hidden">
             {specs.map((spec) => (
-              <div key={spec.label} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <div
+                key={spec.label}
+                className="flex items-center justify-between px-4 py-2.5 text-sm"
+              >
                 <span className="text-umber/60">{spec.label}</span>
                 <span className="text-ink font-medium">{spec.value}</span>
               </div>
@@ -80,9 +101,11 @@ export default function VistaArticulo() {
             <button className="bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors">
               Comprar
             </button>
+
             <button className="border border-clay text-clay rounded-lg py-2.5 font-medium hover:bg-clay/5 transition-colors">
               Hacer una oferta
             </button>
+
             <button
               onClick={() => navigate(`/chat/${prenda.id}`)}
               className="border border-umber/25 text-ink rounded-lg py-2.5 font-medium hover:bg-umber/5 transition-colors"

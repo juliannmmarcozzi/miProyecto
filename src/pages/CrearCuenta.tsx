@@ -5,17 +5,22 @@ import Footer from '../components/Footer';
 import { checkUsuarioDisponible, crearCuenta, USUARIO_MAX_LENGTH } from '../features/auth/api/usuarios';
 
 export default function CrearCuenta() {
+  // cambiar de pagina
   const navigate = useNavigate();
+
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
+  // guarda datos usuario
   const [usuario, setUsuario] = useState('');
   const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
   const [checkingUsuario, setCheckingUsuario] = useState(false);
   const [error, setError] = useState('');
 
+  // verifica si el usuario esta disponible
   useEffect(() => {
     const nombre = usuario.trim();
+
     if (!nombre) {
       setUsuarioDisponible(null);
       setCheckingUsuario(false);
@@ -23,6 +28,7 @@ export default function CrearCuenta() {
     }
 
     setCheckingUsuario(true);
+
     const timeoutId = setTimeout(async () => {
       const disponible = await checkUsuarioDisponible(nombre);
       setUsuarioDisponible(disponible);
@@ -32,6 +38,7 @@ export default function CrearCuenta() {
     return () => clearTimeout(timeoutId);
   }, [usuario]);
 
+  // envia los datos para crear cuenta
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -50,16 +57,17 @@ export default function CrearCuenta() {
       navigate('/');
     } else if (res.status === 409) {
       setUsuarioDisponible(false);
-      setError('Ese nombre de usuario ya está en uso.');
+      setError('Ese nombre de usuario ya esta en uso.');
     } else {
-      setError('No se pudo crear la cuenta. Intentá de nuevo.');
+      setError('No se pudo crear la cuenta. Intenta de nuevo.');
     }
   }
 
+ 
   const usuarioMensaje = checkingUsuario
     ? 'Verificando disponibilidad...'
     : usuarioDisponible === false
-      ? 'Ese nombre de usuario ya está en uso'
+      ? 'Ese nombre de usuario ya esta en uso'
       : usuarioDisponible === true
         ? 'Nombre de usuario disponible'
         : '';
@@ -74,7 +82,15 @@ export default function CrearCuenta() {
           aria-label="Volver al browser"
           className="absolute top-4 left-4 w-9 h-9 rounded-full bg-ink/5 hover:bg-ink/10 flex items-center justify-center"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-ink">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5 text-ink"
+          >
             <path d="M19 12H5" />
             <path d="M12 19l-7-7 7-7" />
           </svg>
@@ -96,6 +112,7 @@ export default function CrearCuenta() {
                 onChange={(e) => setUsuario(e.target.value)}
                 className={inputClass}
               />
+
               {usuarioMensaje && (
                 <p
                   className={`text-xs px-1 ${
@@ -111,13 +128,32 @@ export default function CrearCuenta() {
               )}
             </div>
 
-            <input name="email" type="email" placeholder="Email" className={inputClass} />
-            <input name="telefono" type="tel" placeholder="Teléfono" required className={inputClass} />
-            <input name="password" type="password" placeholder="Contraseña" className={inputClass} />
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              className={inputClass}
+            />
+
+            <input
+              name="telefono"
+              type="tel"
+              placeholder="Telefono"
+              required
+              className={inputClass}
+            />
+
+            <input
+              name="password"
+              type="password"
+              placeholder="Contrasena"
+              className={inputClass}
+            />
+
             <input
               name="confirmPassword"
               type="password"
-              placeholder="Confirmar contraseña"
+              placeholder="Confirmar contrasena"
               className={inputClass}
             />
 
@@ -133,9 +169,9 @@ export default function CrearCuenta() {
           </form>
 
           <p className="text-xs text-umber/70 text-center mt-4">
-            ¿Ya tenés cuenta?{' '}
+            ¿Ya tenes cuenta?{' '}
             <Link to="/login" className="text-clay font-medium hover:underline">
-              Iniciar sesión
+              Iniciar sesion
             </Link>
           </p>
         </div>
