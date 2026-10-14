@@ -1,8 +1,17 @@
+
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HeaderActions from '../components/HeaderActions';
+import { useNavigate } from 'react-router-dom';
 
 export default function Perfil() {
+  const navigate = useNavigate();
+
+  function cerrarSesion() {
+    localStorage.removeItem('token');
+    navigate('/login', { replace: true });
+  }
+
   return (
     <div className="min-h-screen bg-cream text-ink flex flex-col">
 
@@ -40,9 +49,19 @@ export default function Perfil() {
 
           </div>
 
-          <button className="mt-6 bg-clay text-white px-4 py-2 rounded-lg">
+          <button
+            className="mt-6 bg-clay text-white px-4 py-2 rounded-lg hover:bg-clay/90 transition-colors"
+          >
             Editar perfil
-        </button>
+          </button>
+
+          <button
+            onClick={cerrarSesion}
+            className="mt-6 ml-3 bg-umber/10 text-umber border border-umber/20 px-4 py-2 rounded-lg hover:bg-umber/20 transition-colors"
+          >
+            Cerrar sesión
+          </button>
+
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">

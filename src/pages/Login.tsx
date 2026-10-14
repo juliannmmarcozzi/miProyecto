@@ -1,30 +1,43 @@
+
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3000';
 
 export default function Login() {
   const navigate = useNavigate();
+
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const res = await fetch(`${API_URL}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuario: e.target.usuario.value,
-        password: e.target.password.value,
-      }),
-    });
+    const f = e.currentTarget;
 
-    if (res.status == 200) {
-      navigate('/');
-    } else {
-      alert('Usuario o contraseña incorrectos');
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre_usuario: f.usuario.value,
+          contrasena: f.password.value,
+        }),
+      });
+
+      if (res.status === 200) {
+        const data = await res.json();
+
+        localStorage.setItem('token', data.token);
+
+        navigate('/perfil');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Usuario o contraseña incorrectos');
+      }
+    } catch (error) {
+      alert('No se pudo conectar con el servidor');
     }
   }
 
@@ -38,7 +51,15 @@ export default function Login() {
           aria-label="Volver al browser"
           className="absolute top-4 left-4 w-9 h-9 rounded-full bg-ink/5 hover:bg-ink/10 flex items-center justify-center"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-ink">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5 text-ink"
+          >
             <path d="M19 12H5" />
             <path d="M12 19l-7-7 7-7" />
           </svg>
@@ -50,8 +71,20 @@ export default function Login() {
           </h1>
 
           <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <input name="usuario" placeholder="Usuario" className={inputClass} />
-            <input name="password" type="password" placeholder="Contraseña" className={inputClass} />
+            <input
+              name="usuario"
+              placeholder="Usuario"
+              required
+              className={inputClass}
+            />
+
+            <input
+              name="password"
+              type="password"
+              placeholder="Contraseña"
+              required
+              className={inputClass}
+            />
 
             <button
               type="submit"
@@ -63,7 +96,10 @@ export default function Login() {
 
           <p className="text-xs text-umber/70 text-center mt-4">
             ¿No tenés cuenta?{' '}
-            <Link to="/crear-cuenta" className="text-clay font-medium hover:underline">
+            <Link
+              to="/crear-cuenta"
+              className="text-clay font-medium hover:underline"
+            >
               Crear cuenta
             </Link>
           </p>

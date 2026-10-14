@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Browser from './pages/Browser';
 import Perfil from './pages/Perfil';
@@ -9,21 +10,25 @@ import MisPedidos from './pages/MisPedidos';
 import PerfilUsuario from './pages/PerfilUsuario';
 import Chat from './pages/Chat';
 import Comprar from './pages/Comprar';
+import RutaSegura from './components/RutaSegura';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Browser />} />
-        <Route path="/perfil" element={<Perfil />} />
         <Route path="/crear-cuenta" element={<CrearCuenta />} />
         <Route path="/login" element={<Login />} />
         <Route path="/prenda/:id" element={<VistaArticulo />} />
-        <Route path="/mis-publicaciones" element={<MisPublicaciones />} />
-        <Route path="/mis-pedidos" element={<MisPedidos />} />
         <Route path="/usuario/:id" element={<PerfilUsuario />} />
-        <Route path="/chat/:id" element={<Chat />} />
-        <Route path="/comprar/:id" element={<Comprar />} />
+
+        <Route element={<RutaSegura />}>
+          <Route path="/perfil" element={<Perfil />} />
+          <Route path="/mis-publicaciones" element={<MisPublicaciones />} />
+          <Route path="/mis-pedidos" element={<MisPedidos />} />
+          <Route path="/chat/:id" element={<Chat />} />
+          <Route path="/comprar/:id" element={<Comprar />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

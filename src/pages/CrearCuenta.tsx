@@ -1,23 +1,22 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { checkUsuarioDisponible, crearCuenta, USUARIO_MAX_LENGTH } from '../features/auth/api/usuarios';
+
+const API_URL = 'http://localhost:3000';
 
 export default function CrearCuenta() {
-  // cambiar de pagina
   const navigate = useNavigate();
 
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
-  // guarda datos usuario
   const [usuario, setUsuario] = useState('');
   const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
   const [checkingUsuario, setCheckingUsuario] = useState(false);
   const [error, setError] = useState('');
 
-  // verifica si el usuario esta disponible
   useEffect(() => {
     const nombre = usuario.trim();
 
@@ -30,47 +29,52 @@ export default function CrearCuenta() {
     setCheckingUsuario(true);
 
     const timeoutId = setTimeout(async () => {
-      const disponible = await checkUsuarioDisponible(nombre);
-      setUsuarioDisponible(disponible);
+      // Se activará cuando tengamos el endpoint para comprobar usuarios
+      setUsuarioDisponible(null);
       setCheckingUsuario(false);
     }, 400);
 
     return () => clearTimeout(timeoutId);
   }, [usuario]);
 
-  // envia los datos para crear cuenta
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
-    const f = e.target as HTMLFormElement;
 
-    if (usuario.trim().length > USUARIO_MAX_LENGTH || usuarioDisponible === false) return;
+    const f = e.currentTarget;
 
-    const res = await crearCuenta({
-      usuario: usuario.trim(),
-      email: f.email.value,
-      telefono: f.telefono.value,
-      password: f.password.value,
-    });
+    if (f.password.value !== f.confirmPassword.value) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
 
-    if (res.ok) {
-      navigate('/');
-    } else if (res.status === 409) {
-      setUsuarioDisponible(false);
-      setError('Ese nombre de usuario ya esta en uso.');
-    } else {
-      setError('No se pudo crear la cuenta. Intenta de nuevo.');
+    try {
+      const res = await fetch(`${API_URL}/crear_cuenta`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre_usuario: f.usuario.value,
+          nombre: f.nombre.value,
+          apellido: f.apellido.value,
+          fecha_nacimiento: f.fechaNacimiento.value,
+          email: f.email.value,
+          contrasena: f.password.value,
+          numero_telefono: f.telefono.value,
+        }),
+      });
+
+      if (res.ok) {
+        navigate('/login');
+      } else {
+        const data = await res.json();
+        setError(data.error || 'No se pudo crear la cuenta.');
+      }
+    } catch (error) {
+      setError('No se pudo conectar con el servidor.');
     }
   }
-
- 
-  const usuarioMensaje = checkingUsuario
-    ? 'Verificando disponibilidad...'
-    : usuarioDisponible === false
-      ? 'Ese nombre de usuario ya esta en uso'
-      : usuarioDisponible === true
-        ? 'Nombre de usuario disponible'
-        : '';
 
   return (
     <div className="min-h-screen bg-cream text-ink flex flex-col">
@@ -102,43 +106,54 @@ export default function CrearCuenta() {
           </h1>
 
           <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-1">
-              <input
-                name="usuario"
-                placeholder="Usuario"
-                required
-                maxLength={USUARIO_MAX_LENGTH}
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                className={inputClass}
-              />
+            <input
+              name="usuario"
+              placeholder="Usuario"
+              required
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              className={inputClass}
+            />
 
-              {usuarioMensaje && (
-                <p
-                  className={`text-xs px-1 ${
-                    usuarioDisponible === false
-                      ? 'text-red-600'
-                      : usuarioDisponible === true
-                        ? 'text-forest'
-                        : 'text-umber/50'
-                  }`}
-                >
-                  {usuarioMensaje}
-                </p>
-              )}
-            </div>
+            {checkingUsuario && (
+              <p className="text-xs text-umber/50 px-1">
+                Comprobación de disponibilidad pendiente de conectar
+              </p>
+            )}
+
+            <input
+              name="nombre"
+              placeholder="Nombre"
+              required
+              className={inputClass}
+            />
+
+            <input
+              name="apellido"
+              placeholder="Apellido"
+              required
+              className={inputClass}
+            />
+
+            <input
+              name="fechaNacimiento"
+              type="date"
+              required
+              className={inputClass}
+            />
 
             <input
               name="email"
               type="email"
               placeholder="Email"
+              required
               className={inputClass}
             />
 
             <input
               name="telefono"
               type="tel"
-              placeholder="Telefono"
+              placeholder="Teléfono"
               required
               className={inputClass}
             />
@@ -146,32 +161,40 @@ export default function CrearCuenta() {
             <input
               name="password"
               type="password"
-              placeholder="Contrasena"
+              placeholder="Contraseña"
+              required
               className={inputClass}
             />
 
             <input
               name="confirmPassword"
               type="password"
-              placeholder="Confirmar contrasena"
+              placeholder="Confirmar contraseña"
+              required
               className={inputClass}
             />
 
-            {error && <p className="text-xs text-red-600 px-1">{error}</p>}
+            {error && (
+              <p className="text-xs text-red-600 px-1">
+                {error}
+              </p>
+            )}
 
             <button
               type="submit"
-              disabled={checkingUsuario || usuarioDisponible === false}
-              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors"
             >
               Crear cuenta
             </button>
           </form>
 
           <p className="text-xs text-umber/70 text-center mt-4">
-            ¿Ya tenes cuenta?{' '}
-            <Link to="/login" className="text-clay font-medium hover:underline">
-              Iniciar sesion
+            ¿Ya tenés cuenta?{' '}
+            <Link
+              to="/login"
+              className="text-clay font-medium hover:underline"
+            >
+              Iniciar sesión
             </Link>
           </p>
         </div>
