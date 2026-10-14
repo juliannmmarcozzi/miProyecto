@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -12,30 +12,7 @@ export default function CrearCuenta() {
   const inputClass =
     'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
 
-  const [usuario, setUsuario] = useState('');
-  const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
-  const [checkingUsuario, setCheckingUsuario] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    const nombre = usuario.trim();
-
-    if (!nombre) {
-      setUsuarioDisponible(null);
-      setCheckingUsuario(false);
-      return;
-    }
-
-    setCheckingUsuario(true);
-
-    const timeoutId = setTimeout(async () => {
-      // Se activará cuando tengamos el endpoint para comprobar usuarios
-      setUsuarioDisponible(null);
-      setCheckingUsuario(false);
-    }, 400);
-
-    return () => clearTimeout(timeoutId);
-  }, [usuario]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -110,16 +87,8 @@ export default function CrearCuenta() {
               name="usuario"
               placeholder="Usuario"
               required
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
               className={inputClass}
             />
-
-            {checkingUsuario && (
-              <p className="text-xs text-umber/50 px-1">
-                Comprobación de disponibilidad pendiente de conectar
-              </p>
-            )}
 
             <input
               name="nombre"
