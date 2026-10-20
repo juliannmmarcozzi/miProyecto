@@ -14,10 +14,10 @@ export default function VistaArticulo() {
     if (id) getPrenda(id).then((p) => setPrenda(p ?? null));
   }, [id]);
 
-  // muestra  mensaje si no se encontro la prenda
+  // si no se encontro la prenda
   if (!prenda) return <p className="p-4 text-umber/60">Prenda no encontrada.</p>;
 
-  // datos que se muestran en la tabla specs
+  // datos de la tabla de specs
   const specs = [
     { label: 'Marca', value: prenda.marca },
     { label: 'Tipo', value: prenda.tipoPrenda },
