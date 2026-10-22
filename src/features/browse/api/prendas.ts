@@ -22,7 +22,7 @@ export interface Prenda {
 // datos que pone el usuario al publicar.
 type NuevaPrenda = Omit<Prenda, 'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'>;
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3000';
 
 // trae todas las prendas
 export async function getPrendas(): Promise<Prenda[]> {
@@ -38,11 +38,33 @@ export async function getPrenda(id: string): Promise<Prenda | undefined> {
 }
 
 // crea una prenda/post nueva
-export async function createPost(nuevaPrenda: NuevaPrenda): Promise<Prenda> {
-  const res = await fetch(`${API_URL}/api/prendas`, {
+
+
+export async function createPost(
+  nuevaPrenda: NuevaPrenda,
+  usuarioId: number
+) {
+  const res = await fetch('http://localhost:3000/crear_publicacion', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(nuevaPrenda),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      talle: nuevaPrenda.talle,
+      color: nuevaPrenda.color,
+      estado_condicion: nuevaPrenda.estado,
+      precio: nuevaPrenda.precio,
+      titulo: nuevaPrenda.titulo,
+      descripcion: nuevaPrenda.descripcion,
+      foto: nuevaPrenda.imagenes[0],
+      marca: nuevaPrenda.marca,
+      usuario_publicador_id: usuarioId,
+    }),
   });
+
+  if (!res.ok) {
+    throw new Error(`Error al crear publicación: ${res.status}`);
+  }
+
   return res.json();
 }
