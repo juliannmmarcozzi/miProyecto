@@ -1,18 +1,60 @@
 
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-
-interface Publicacion {
-  id: number;
-  titulo: string;
-  precio: number;
-  imagen: string;
-  estado: string;
-}
+import {
+  getMisPublicaciones,
+  type PublicacionBackend,
+} from '../features/browse/api/prendas';
 
 export default function MisPublicaciones() {
-  const publicaciones: Publicacion[] = [];
+  const navigate = useNavigate();
+
+  const [publicaciones, setPublicaciones] = useState<PublicacionBackend[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function cargarPublicaciones() {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:3000/perfil', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error('No se pudo obtener el perfil');
+        }
+
+        const usuario = await res.json();
+
+        const datos = await getMisPublicaciones(usuario.id);
+        setPublicaciones(datos);
+      } catch (error) {
+        console.error(error);
+        setError('No se pudieron cargar tus publicaciones.');
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    cargarPublicaciones();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-cream text-ink flex flex-col">
@@ -32,7 +74,11 @@ export default function MisPublicaciones() {
           </Link>
         </div>
 
-        {publicaciones.length === 0 ? (
+        {cargando ? (
+          <p>Cargando publicaciones...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : publicaciones.length === 0 ? (
           <div className="bg-white rounded-lg p-6 text-center">
             <p className="text-umber/70 mb-4">
               Todavía no tenés publicaciones.
@@ -52,11 +98,13 @@ export default function MisPublicaciones() {
                 key={publicacion.id}
                 className="bg-white rounded-lg overflow-hidden"
               >
-                <img
-                  src={publicacion.imagen}
-                  alt={publicacion.titulo}
-                  className="w-full h-56 object-cover"
-                />
+                {publicacion.foto && (
+                  <img
+                    src={publicacion.foto}
+                    alt={publicacion.titulo}
+                    className="w-full h-56 object-cover"
+                  />
+                )}
 
                 <div className="p-4">
                   <h2 className="text-lg font-bold">
@@ -68,7 +116,7 @@ export default function MisPublicaciones() {
                   </p>
 
                   <p className="text-gray-500 text-sm mt-1">
-                    Estado: {publicacion.estado}
+                    Estado: {publicacion.estado_condicion}
                   </p>
 
                   <div className="flex gap-3 mt-4">

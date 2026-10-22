@@ -26,15 +26,40 @@ const API_URL = 'http://localhost:3000';
 
 // trae todas las prendas
 export async function getPrendas(): Promise<Prenda[]> {
-  const res = await fetch(`${API_URL}/api/prendas`);
-  return res.json();
+  const res = await fetch(`${API_URL}/prendas`);
+
+  if (!res.ok) {
+    throw new Error('Error al obtener las prendas');
+  }
+
+  const datos = await res.json();
+
+  return datos.map((producto: any) => ({
+    id: String(producto.id),
+    titulo: producto.titulo,
+    precio: Number(producto.precio),
+    imagenes: producto.foto ? [producto.foto] : [],
+    descripcion: producto.descripcion,
+    tipoPrenda: producto.tipo_prenda ?? '',
+    marca: producto.marca,
+    color: producto.color,
+    talle: producto.talle,
+    estado: producto.estado_condicion,
+    likes: producto.likes ?? 0,
+    visualizaciones: producto.visualizaciones ?? 0,
+    tags: producto.tags ?? [],
+    genero: producto.genero ?? '',
+    stock: producto.stock ?? 0,
+    usuario: String(producto.usuario_publicador_id),
+    fechaPublicacion: producto.fecha_publicacion,
+  }));
 }
 
 // trae una prenda por id (para vista ampliada)
 export async function getPrenda(id: string): Promise<Prenda | undefined> {
-  const res = await fetch(`${API_URL}/api/prendas/${id}`);
-  if (!res.ok) return undefined;
-  return res.json();
+  const prendas = await getPrendas();
+
+  return prendas.find((prenda) => prenda.id === id);
 }
 
 // crea una prenda/post nueva
@@ -68,3 +93,31 @@ export async function createPost(
 
   return res.json();
 }
+
+
+export interface PublicacionBackend {
+  id: number;
+  titulo: string;
+  precio: number;
+  descripcion: string;
+  foto: string;
+  talle: string;
+  color: string;
+  estado_condicion: string;
+  marca: string;
+  usuario_publicador_id: number;
+  fecha_publicacion: string;
+}
+
+export async function getMisPublicaciones(
+  usuarioId: number
+): Promise<PublicacionBackend[]> {
+  const res = await fetch(`${API_URL}/publicaciones/${usuarioId}`);
+
+  if (!res.ok) {
+    throw new Error('Error al obtener las publicaciones');
+  }
+
+  return res.json();
+}
+
