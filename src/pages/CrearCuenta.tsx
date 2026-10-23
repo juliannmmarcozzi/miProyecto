@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -14,13 +14,16 @@ export default function CrearCuenta() {
 
   const [error, setError] = useState('');
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
 
-    const f = e.currentTarget;
+    const datos = new FormData(e.currentTarget);
 
-    if (f.password.value !== f.confirmPassword.value) {
+    const password = String(datos.get('password'));
+    const confirmPassword = String(datos.get('confirmPassword'));
+
+    if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
     }
@@ -32,13 +35,13 @@ export default function CrearCuenta() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nombre_usuario: f.usuario.value,
-          nombre: f.nombre.value,
-          apellido: f.apellido.value,
-          fecha_nacimiento: f.fechaNacimiento.value,
-          email: f.email.value,
-          contrasena: f.password.value,
-          numero_telefono: f.telefono.value,
+          nombre_usuario: datos.get('usuario'),
+          nombre: datos.get('nombre'),
+          apellido: datos.get('apellido'),
+          fecha_nacimiento: datos.get('fechaNacimiento'),
+          email: datos.get('email'),
+          contrasena: password,
+          numero_telefono: datos.get('telefono'),
         }),
       });
 
@@ -49,6 +52,7 @@ export default function CrearCuenta() {
         setError(data.error || 'No se pudo crear la cuenta.');
       }
     } catch (error) {
+      console.error(error);
       setError('No se pudo conectar con el servidor.');
     }
   }
@@ -82,10 +86,15 @@ export default function CrearCuenta() {
             Crear cuenta
           </h1>
 
-          <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={handleSubmit}
+            autoComplete="off"
+          >
             <input
               name="usuario"
               placeholder="Usuario"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -93,6 +102,7 @@ export default function CrearCuenta() {
             <input
               name="nombre"
               placeholder="Nombre"
+              autoComplete="given-name"
               required
               className={inputClass}
             />
@@ -100,6 +110,7 @@ export default function CrearCuenta() {
             <input
               name="apellido"
               placeholder="Apellido"
+              autoComplete="family-name"
               required
               className={inputClass}
             />
@@ -107,6 +118,7 @@ export default function CrearCuenta() {
             <input
               name="fechaNacimiento"
               type="date"
+              autoComplete="bday"
               required
               className={inputClass}
             />
@@ -115,6 +127,7 @@ export default function CrearCuenta() {
               name="email"
               type="email"
               placeholder="Email"
+              autoComplete="email"
               required
               className={inputClass}
             />
@@ -123,6 +136,7 @@ export default function CrearCuenta() {
               name="telefono"
               type="tel"
               placeholder="Teléfono"
+              autoComplete="tel"
               required
               className={inputClass}
             />
@@ -131,6 +145,7 @@ export default function CrearCuenta() {
               name="password"
               type="password"
               placeholder="Contraseña"
+              autoComplete="new-password"
               required
               className={inputClass}
             />
@@ -139,6 +154,7 @@ export default function CrearCuenta() {
               name="confirmPassword"
               type="password"
               placeholder="Confirmar contraseña"
+              autoComplete="new-password"
               required
               className={inputClass}
             />

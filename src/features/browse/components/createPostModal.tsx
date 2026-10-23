@@ -39,8 +39,7 @@ export default function CreatePostModal({
       return;
     }
 
-    const f = e.currentTarget;
-    const datos = new FormData(f);
+    const datos = new FormData(e.currentTarget);
 
     setCargando(true);
     setError('');
@@ -72,10 +71,6 @@ export default function CreatePostModal({
         color: String(datos.get('color')),
         talle: String(datos.get('talle')),
         estado: String(datos.get('estado')),
-        tags: String(datos.get('tags'))
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
         genero: String(datos.get('genero')),
         stock: Number(datos.get('stock')),
       }, usuario.id);
@@ -233,13 +228,6 @@ export default function CreatePostModal({
               type="number"
               min="1"
               placeholder="Stock"
-              required
-              className={inputClass}
-            />
-
-            <input
-              name="tags"
-              placeholder="Tags (separados por coma)"
               required
               className={inputClass}
             />

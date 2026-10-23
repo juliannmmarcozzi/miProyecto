@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getPrenda, type Prenda } from '../features/browse/api/prendas';
@@ -8,14 +9,40 @@ export default function VistaArticulo() {
 
   // guarda la prenda
   const [prenda, setPrenda] = useState<Prenda | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
 
   // busca la prenda cuando cambia el id
   useEffect(() => {
-    if (id) getPrenda(id).then((p) => setPrenda(p ?? null));
+    if (!id) {
+      setPrenda(null);
+      setCargando(false);
+      return;
+    }
+
+    setCargando(true);
+    setError('');
+    setPrenda(null);
+
+    getPrenda(id)
+      .then((p) => setPrenda(p ?? null))
+      .catch(() => setError('No se pudo cargar la prenda.'))
+      .finally(() => setCargando(false));
   }, [id]);
 
+  // mientras carga la prenda
+  if (cargando) {
+    return <p className="p-4 text-umber/60">Cargando prenda...</p>;
+  }
+
+  if (error) {
+    return <p className="p-4 text-red-600">{error}</p>;
+  }
+
   // si no se encontro la prenda
-  if (!prenda) return <p className="p-4 text-umber/60">Prenda no encontrada.</p>;
+  if (!prenda) {
+    return <p className="p-4 text-umber/60">Prenda no encontrada.</p>;
+  }
 
   // datos de la tabla de specs
   const specs = [
@@ -26,7 +53,12 @@ export default function VistaArticulo() {
     { label: 'Color', value: prenda.color },
     { label: 'Género', value: prenda.genero },
     { label: 'Stock', value: prenda.stock },
-    { label: 'Subido', value: new Date(prenda.fechaPublicacion).toLocaleDateString() },
+    {
+      label: 'Subido',
+      value: prenda.fechaPublicacion
+        ? new Date(prenda.fechaPublicacion).toLocaleDateString('es-AR')
+        : 'Sin fecha',
+    },
   ];
 
   return (
@@ -52,23 +84,31 @@ export default function VistaArticulo() {
 
       <div className="flex flex-col md:flex-row gap-6">
         <div className="md:w-1/2 aspect-square bg-umber/10 rounded-2xl overflow-hidden shrink-0">
-          {prenda.imagenes[0] && (
+          {prenda.imagenes[0] ? (
             <img
               src={prenda.imagenes[0]}
               alt={prenda.titulo}
               className="w-full h-full object-contain"
             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-umber/50">
+              Sin imagen
+            </div>
           )}
         </div>
 
         <div className="md:w-1/2 flex flex-col">
-          <h1 className="font-display font-bold text-2xl text-ink">{prenda.titulo}</h1>
+          <h1 className="font-display font-bold text-2xl text-ink">
+            {prenda.titulo}
+          </h1>
 
           <p className="text-sm text-umber/70 mt-1">
             Publicado por {prenda.usuario} · 👁 {prenda.visualizaciones} · ♥ {prenda.likes}
           </p>
 
-          <p className="text-clay font-mono font-bold text-2xl mt-3">${prenda.precio}</p>
+          <p className="text-clay font-mono font-bold text-2xl mt-3">
+            ${prenda.precio}
+          </p>
 
           <div className="border border-umber/15 rounded-2xl mt-4 divide-y divide-umber/10 overflow-hidden">
             {specs.map((spec) => (
@@ -82,20 +122,9 @@ export default function VistaArticulo() {
             ))}
           </div>
 
-          <p className="text-ink text-sm mt-4">{prenda.descripcion}</p>
-
-          {prenda.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {prenda.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] font-mono uppercase tracking-wide bg-forest/10 text-forest px-1.5 py-0.5 rounded"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+          <p className="text-ink text-sm mt-4">
+            {prenda.descripcion}
+          </p>
 
           <div className="flex flex-col gap-2 mt-6">
             <button className="bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors">

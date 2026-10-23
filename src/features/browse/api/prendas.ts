@@ -1,4 +1,3 @@
-// estructura de una prenda
 export interface Prenda {
   id: string;
   titulo: string;
@@ -12,19 +11,16 @@ export interface Prenda {
   estado: string;
   likes: number;
   visualizaciones: number;
-  tags: string[];
   genero: string;
   stock: number;
   usuario: string;
   fechaPublicacion: string;
 }
 
-// datos que pone el usuario al publicar.
 type NuevaPrenda = Omit<Prenda, 'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'>;
 
 const API_URL = 'http://localhost:3000';
 
-// trae todas las prendas
 export async function getPrendas(): Promise<Prenda[]> {
   const res = await fetch(`${API_URL}/prendas`);
 
@@ -47,7 +43,6 @@ export async function getPrendas(): Promise<Prenda[]> {
     estado: producto.estado_condicion,
     likes: producto.likes ?? 0,
     visualizaciones: producto.visualizaciones ?? 0,
-    tags: producto.tags ?? [],
     genero: producto.genero ?? '',
     stock: producto.stock ?? 0,
     usuario: String(producto.usuario_publicador_id),
@@ -55,21 +50,19 @@ export async function getPrendas(): Promise<Prenda[]> {
   }));
 }
 
-// trae una prenda por id (para vista ampliada)
 export async function getPrenda(id: string): Promise<Prenda | undefined> {
   const prendas = await getPrendas();
 
   return prendas.find((prenda) => prenda.id === id);
 }
 
-// crea una prenda/post nueva
-
+// crear un post/prenda
 
 export async function createPost(
   nuevaPrenda: NuevaPrenda,
   usuarioId: number
 ) {
-  const res = await fetch('http://localhost:3000/crear_publicacion', {
+  const res = await fetch(`${API_URL}/crear_publicacion`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -84,6 +77,9 @@ export async function createPost(
       foto: nuevaPrenda.imagenes[0],
       marca: nuevaPrenda.marca,
       usuario_publicador_id: usuarioId,
+      tipo_prenda: nuevaPrenda.tipoPrenda,
+      genero: nuevaPrenda.genero,
+      stock: nuevaPrenda.stock,
     }),
   });
 
