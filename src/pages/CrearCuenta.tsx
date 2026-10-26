@@ -10,6 +10,8 @@ export default function CrearCuenta() {
 
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
 
   const inputClass =
     'w-full bg-[#090F1E] text-white placeholder:text-gray-400 px-3 py-2.5 border border-white/5 focus:outline-none focus:border-blue-500';
@@ -78,6 +80,7 @@ export default function CrearCuenta() {
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-4"
+            autoComplete="off"
           >
             <input
               name="usuario"
@@ -132,23 +135,59 @@ export default function CrearCuenta() {
               className={inputClass}
             />
 
-            <input
-              name="password"
-              type="password"
-              placeholder="Contraseña"
-              autoComplete="new-password"
-              required
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={mostrarPassword ? 'text' : 'password'}
+                placeholder="Contraseña"
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                required
+                className={`${inputClass} pr-11`}
+              />
 
-            <input
-              name="confirmPassword"
-              type="password"
-              placeholder="Confirmar contraseña"
-              autoComplete="new-password"
-              required
-              className={inputClass}
-            />
+              <button
+                type="button"
+                onClick={() => setMostrarPassword(!mostrarPassword)}
+                aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={mostrarPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/togglepassword.svg"
+                  alt=""
+                  className="w-5 h-5 brightness-0 invert"
+                />
+              </button>
+            </div>
+
+            <div className="relative">
+              <input
+                name="confirmPassword"
+                type={mostrarConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirmar contraseña"
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                required
+                className={`${inputClass} pr-11`}
+              />
+
+              <button
+                type="button"
+                onClick={() => setMostrarConfirmPassword(!mostrarConfirmPassword)}
+                aria-label={mostrarConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={mostrarConfirmPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/togglepassword.svg"
+                  alt=""
+                  className="w-5 h-5 brightness-0 invert"
+                />
+              </button>
+            </div>
 
             {error && (
               <p className="text-red-400 text-sm">
@@ -159,7 +198,7 @@ export default function CrearCuenta() {
             <button
               type="submit"
               disabled={cargando}
-              className="mt-4 bg-[#1613A5] text-white rounded-full py-2.5 font-medium hover:bg-[#2520C8] transition-colors disabled:opacity-50"
+              className="mt-4 bg-[#1613A5] text-white rounded-full py-2.5 font-medium hover:bg-[#2520C8] transition-colors disabled:opacity-50 cursor-pointer"
             >
               {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>

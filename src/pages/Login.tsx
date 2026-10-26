@@ -10,6 +10,7 @@ export default function Login() {
 
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   const inputClass =
     'w-full bg-[#090F1E] text-white placeholder:text-gray-400 px-3 py-2.5 border border-white/5 focus:outline-none focus:border-blue-500';
@@ -77,14 +78,30 @@ export default function Login() {
               className={inputClass}
             />
 
-            <input
-              name="password"
-              type="password"
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              required
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={mostrarPassword ? 'text' : 'password'}
+                placeholder="Contraseña"
+                autoComplete="current-password"
+                required
+                className={`${inputClass} pr-11`}
+              />
+
+              <button
+                type="button"
+                onClick={() => setMostrarPassword(!mostrarPassword)}
+                aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={mostrarPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/togglepassword.svg"
+                  alt=""
+                  className="w-5 h-5"
+                />
+              </button>
+            </div>
 
             {error && (
               <p className="text-red-400 text-sm">
