@@ -1,18 +1,18 @@
 
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import NavMenu from '../components/NavMenu';
 
 const API_URL = 'http://localhost:3000';
 
 export default function CrearCuenta() {
   const navigate = useNavigate();
 
-  const inputClass =
-    'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
-
   const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false);
+
+  const inputClass =
+    'w-full bg-[#090F1E] text-white placeholder:text-gray-400 px-3 py-2.5 border border-white/5 focus:outline-none focus:border-blue-500';
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,6 +27,8 @@ export default function CrearCuenta() {
       setError('Las contraseñas no coinciden.');
       return;
     }
+
+    setCargando(true);
 
     try {
       const res = await fetch(`${API_URL}/crear_cuenta`, {
@@ -54,53 +56,41 @@ export default function CrearCuenta() {
     } catch (error) {
       console.error(error);
       setError('No se pudo conectar con el servidor.');
+    } finally {
+      setCargando(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-cream text-ink flex flex-col">
-      <Header />
+    <div className="min-h-screen bg-[#10182D] text-white">
+      <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
+        <img
+          src="/image%204.png"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
-      <main className="flex-1 relative flex items-center justify-center p-4">
-        <Link
-          to="/"
-          aria-label="Volver al browser"
-          className="absolute top-4 left-4 w-9 h-9 rounded-full bg-ink/5 hover:bg-ink/10 flex items-center justify-center"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5 text-ink"
-          >
-            <path d="M19 12H5" />
-            <path d="M12 19l-7-7 7-7" />
-          </svg>
-        </Link>
+        <div className="absolute top-6 left-6 z-30">
+          <NavMenu />
+        </div>
 
-        <div className="w-full max-w-sm bg-white border border-umber/15 rounded-2xl p-6">
-          <h1 className="font-display font-bold text-lg text-ink mb-4 text-center">
-            Crear cuenta
-          </h1>
-
+        <div className="relative z-10 w-full max-w-[400px] bg-[#10182D] px-9 pt-10 pb-6 flex flex-col">
           <form
-            className="flex flex-col gap-2"
             onSubmit={handleSubmit}
-            autoComplete="off"
+            className="flex flex-col gap-4"
           >
             <input
               name="usuario"
+              type="text"
               placeholder="Usuario"
-              autoComplete="off"
+              autoComplete="username"
               required
               className={inputClass}
             />
 
             <input
               name="nombre"
+              type="text"
               placeholder="Nombre"
               autoComplete="given-name"
               required
@@ -109,6 +99,7 @@ export default function CrearCuenta() {
 
             <input
               name="apellido"
+              type="text"
               placeholder="Apellido"
               autoComplete="family-name"
               required
@@ -126,7 +117,7 @@ export default function CrearCuenta() {
             <input
               name="email"
               type="email"
-              placeholder="Email"
+              placeholder="Correo electrónico"
               autoComplete="email"
               required
               className={inputClass}
@@ -160,32 +151,28 @@ export default function CrearCuenta() {
             />
 
             {error && (
-              <p className="text-xs text-red-600 px-1">
+              <p className="text-red-400 text-sm">
                 {error}
               </p>
             )}
 
             <button
               type="submit"
-              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors"
+              disabled={cargando}
+              className="mt-4 bg-[#1613A5] text-white rounded-full py-2.5 font-medium hover:bg-[#2520C8] transition-colors disabled:opacity-50"
             >
-              Crear cuenta
+              {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
-          <p className="text-xs text-umber/70 text-center mt-4">
-            ¿Ya tenés cuenta?{' '}
-            <Link
-              to="/login"
-              className="text-clay font-medium hover:underline"
-            >
-              Iniciar sesión
-            </Link>
-          </p>
+          <Link
+            to="/login"
+            className="text-center text-xs text-gray-300 hover:text-white mt-8"
+          >
+            Iniciar sesión
+          </Link>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
