@@ -9,6 +9,7 @@ export interface Filtros {
   marca: string;
   estado: string;
   genero: string;
+  color?: string;
 }
 
 export const filtrosIniciales: Filtros = {
@@ -19,6 +20,7 @@ export const filtrosIniciales: Filtros = {
   marca: '',
   estado: '',
   genero: '',
+  color: '',
 };
 
 interface FilterSidebarProps {
@@ -26,6 +28,30 @@ interface FilterSidebarProps {
   onClose: () => void;
   onApply: (filtros: Filtros) => void;
 }
+
+const tiposPrenda = [
+  'Remera',
+  'Buzo',
+  'Pantalón',
+  'Campera',
+  'Jean',
+  'Camisa',
+  'Zapatillas',
+  'Short',
+  'Vestido',
+];
+
+const talles = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+const colores = [
+  { nombre: 'Blanco', codigo: '#F4F4F4' },
+  { nombre: 'Negro', codigo: '#111111' },
+  { nombre: 'Gris', codigo: '#808B9A' },
+  { nombre: 'Rojo', codigo: '#E11D48' },
+  { nombre: 'Amarillo', codigo: '#FACC15' },
+  { nombre: 'Azul', codigo: '#2563EB' },
+  { nombre: 'Verde', codigo: '#3F702D' },
+];
 
 export default function FilterSidebar({
   open,
@@ -37,7 +63,7 @@ export default function FilterSidebar({
   function cambiarFiltro(campo: keyof Filtros, valor: string) {
     setFiltros((anteriores) => ({
       ...anteriores,
-      [campo]: valor,
+      [campo]: anteriores[campo] === valor ? '' : valor,
     }));
   }
 
@@ -55,52 +81,104 @@ export default function FilterSidebar({
   if (!open) return null;
 
   const inputClass =
-    'w-full bg-cream text-ink rounded-lg px-3 py-2 text-sm outline-none';
+    'w-full bg-[#10233D] border border-[#294563] text-[#E6EDF7] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#4B83D5]';
+
+  const sectionClass = 'border-b border-[#263A54] pb-5';
 
   return (
     <div
-      className="fixed inset-0 bg-ink/50 z-40"
+      className="fixed inset-0 bg-black/60 z-40"
       onClick={onClose}
     >
       <aside
-        className="absolute top-0 left-0 h-full w-72 bg-forest text-cream p-5 overflow-y-auto"
+        className="absolute top-0 left-0 h-full w-[310px] max-w-[90vw] bg-[#0A1729] text-[#DCE7F5] p-5 overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-lg font-bold">
+          <h2 className="font-display text-xl font-bold text-white">
             Filtros
           </h2>
 
-          <button onClick={onClose} className="text-cream/70">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#A9BAD0] hover:text-white text-xl cursor-pointer"
+            aria-label="Cerrar filtros"
+          >
             ✕
           </button>
         </div>
 
         <div className="flex flex-col gap-5">
-
-          <div>
-            <label className="block text-sm mb-2">
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
               Tipo de prenda
-            </label>
-            <select
-              value={filtros.tipoPrenda}
-              onChange={(e) => cambiarFiltro('tipoPrenda', e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Todos</option>
-              <option value="Remera">Remera</option>
-              <option value="Pantalón">Pantalón</option>
-              <option value="Campera">Campera</option>
-              <option value="Buzo">Buzo</option>
-              <option value="Vestido">Vestido</option>
-              <option value="Zapatillas">Zapatillas</option>
-            </select>
+            </h3>
+
+            <div className="flex flex-col gap-2.5">
+              {tiposPrenda.map((tipo) => (
+                <label
+                  key={tipo}
+                  className="flex items-center gap-2.5 text-sm cursor-pointer text-[#B9C9DC]"
+                >
+                  <input
+                    type="radio"
+                    name="tipoPrenda"
+                    checked={filtros.tipoPrenda === tipo}
+                    onChange={() => cambiarFiltro('tipoPrenda', tipo)}
+                    className="accent-[#3B82F6] w-4 h-4"
+                  />
+                  {tipo}
+                </label>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm mb-2">
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
+              Marca
+            </h3>
+
+            <input
+              placeholder="Todas las marcas"
+              value={filtros.marca}
+              onChange={(e) =>
+                setFiltros((anteriores) => ({
+                  ...anteriores,
+                  marca: e.target.value,
+                }))
+              }
+              className={inputClass}
+            />
+          </div>
+
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
+              Talle
+            </h3>
+
+            <div className="flex flex-wrap gap-2">
+              {talles.map((talle) => (
+                <button
+                  key={talle}
+                  type="button"
+                  onClick={() => cambiarFiltro('talle', talle)}
+                  className={`px-3 py-2 rounded-lg text-sm border transition-colors cursor-pointer ${
+                    filtros.talle === talle
+                      ? 'bg-[#2563EB] border-[#60A5FA] text-white'
+                      : 'bg-[#10233D] border-[#294563] text-[#B9C9DC] hover:border-[#4B83D5]'
+                  }`}
+                >
+                  {talle}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
               Precio
-            </label>
+            </h3>
 
             <div className="flex gap-2">
               <input
@@ -108,7 +186,12 @@ export default function FilterSidebar({
                 min="0"
                 placeholder="Mínimo"
                 value={filtros.precioMin}
-                onChange={(e) => cambiarFiltro('precioMin', e.target.value)}
+                onChange={(e) =>
+                  setFiltros((anteriores) => ({
+                    ...anteriores,
+                    precioMin: e.target.value,
+                  }))
+                }
                 className={inputClass + ' min-w-0'}
               />
 
@@ -117,65 +200,82 @@ export default function FilterSidebar({
                 min="0"
                 placeholder="Máximo"
                 value={filtros.precioMax}
-                onChange={(e) => cambiarFiltro('precioMax', e.target.value)}
+                onChange={(e) =>
+                  setFiltros((anteriores) => ({
+                    ...anteriores,
+                    precioMax: e.target.value,
+                  }))
+                }
                 className={inputClass + ' min-w-0'}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm mb-2">
-              Talle
-            </label>
-            <select
-              value={filtros.talle}
-              onChange={(e) => cambiarFiltro('talle', e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Todos</option>
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-            </select>
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
+              Color
+            </h3>
+
+            <div className="flex flex-wrap gap-3">
+              {colores.map((color) => (
+                <button
+                  key={color.nombre}
+                  type="button"
+                  title={color.nombre}
+                  aria-label={`Filtrar por color ${color.nombre}`}
+                  aria-pressed={filtros.color === color.nombre}
+                  onClick={() => cambiarFiltro('color', color.nombre)}
+                  className={`w-7 h-7 rounded-full border-2 p-[3px] cursor-pointer ${
+                    filtros.color === color.nombre
+                      ? 'border-[#60A5FA]'
+                      : 'border-[#66809F]'
+                  }`}
+                >
+                  <span
+                    className="block w-full h-full rounded-full"
+                    style={{ backgroundColor: color.codigo }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={sectionClass}>
+            <h3 className="text-sm font-semibold mb-3">
+              Estado de la prenda
+            </h3>
+
+            <div className="flex flex-col gap-2">
+              {['Nuevo', 'Usado'].map((estado) => (
+                <label
+                  key={estado}
+                  className="flex gap-2.5 items-center text-sm text-[#B9C9DC] cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filtros.estado === estado}
+                    onChange={() => cambiarFiltro('estado', estado)}
+                    className="w-4 h-4 accent-[#2563EB]"
+                  />
+                  {estado}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-2">
-              Marca
-            </label>
-            <input
-              placeholder="Buscar marca"
-              value={filtros.marca}
-              onChange={(e) => cambiarFiltro('marca', e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-2">
-              Estado
-            </label>
-            <select
-              value={filtros.estado}
-              onChange={(e) => cambiarFiltro('estado', e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Todos</option>
-              <option value="Nuevo">Nuevo</option>
-              <option value="Usado">Usado</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm mb-2">
+            <h3 className="text-sm font-semibold mb-3">
               Género
-            </label>
+            </h3>
+
             <select
               value={filtros.genero}
-              onChange={(e) => cambiarFiltro('genero', e.target.value)}
+              onChange={(e) =>
+                setFiltros((anteriores) => ({
+                  ...anteriores,
+                  genero: e.target.value,
+                }))
+              }
               className={inputClass}
             >
               <option value="">Todos</option>
@@ -186,19 +286,20 @@ export default function FilterSidebar({
           </div>
 
           <button
+            type="button"
             onClick={aplicarFiltros}
-            className="bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90"
+            className="bg-[#2563EB] text-white rounded-lg py-3 font-medium hover:bg-[#1D4ED8] transition-colors cursor-pointer"
           >
             Aplicar filtros
           </button>
 
           <button
+            type="button"
             onClick={limpiarFiltros}
-            className="border border-cream/30 rounded-lg py-2.5 text-sm hover:bg-cream/10"
+            className="border border-[#36506D] rounded-lg py-3 text-sm hover:bg-white/5 transition-colors cursor-pointer"
           >
             Limpiar filtros
           </button>
-
         </div>
       </aside>
     </div>

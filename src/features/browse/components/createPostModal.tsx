@@ -71,7 +71,6 @@ export default function CreatePostModal({
 
     try {
       const resPerfil = await fetch(`${API_URL}/mi_perfil`, {
-        method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -112,7 +111,6 @@ export default function CreatePostModal({
       onClose();
     } catch (error) {
       console.error(error);
-
       setError(
         error instanceof Error
           ? error.message
@@ -124,46 +122,64 @@ export default function CreatePostModal({
   }
 
   const inputClass =
-    'border border-umber/25 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-clay/40 focus:border-clay';
+    'block w-full min-w-0 h-11 box-border bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] focus:ring-1 focus:ring-[#4B83D5]/30 transition-colors';
 
   return (
-    <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-cream rounded-2xl w-full max-w-2xl overflow-hidden relative shadow-2xl">
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      <div className="relative w-full max-w-3xl max-h-[90dvh] bg-[#0E1D32] border border-[#294768] rounded-2xl overflow-hidden shadow-2xl">
 
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-ink text-cream hover:bg-ink/80 flex items-center justify-center z-10"
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-[#172A45] hover:bg-[#294768] text-white flex items-center justify-center cursor-pointer transition-colors"
           aria-label="Cerrar"
         >
           ✕
         </button>
 
-        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row">
-
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col md:flex-row max-h-[90dvh] overflow-y-auto md:overflow-hidden"
+        >
           <label
             className={
-              'md:w-1/2 aspect-square bg-umber/10 flex items-center justify-center cursor-pointer relative overflow-hidden' +
-              (imageError ? ' ring-2 ring-clay' : '')
+              'w-full md:w-1/2 md:shrink-0 min-h-48 md:min-h-0 bg-[#102039] flex items-center justify-center cursor-pointer relative overflow-hidden border-b md:border-b-0 md:border-r border-[#294768]' +
+              (imageError ? ' ring-2 ring-inset ring-red-400' : '')
             }
           >
             {preview ? (
               <img
                 src={preview}
                 alt="Vista previa de la prenda"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             ) : (
-              <span
-                className={
-                  'text-sm text-center px-6' +
-                  (imageError ? ' text-clay' : ' text-umber/60')
-                }
-              >
-                {imageError
-                  ? 'Subí una foto de la prenda'
-                  : 'Tocá para subir una foto de la prenda'}
-              </span>
+              <div className="flex flex-col items-center gap-3 px-6 text-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-10 h-10 text-[#8195AE]"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+
+                <span
+                  className={
+                    'text-sm ' +
+                    (imageError ? 'text-red-400' : 'text-[#A9BAD0]')
+                  }
+                >
+                  {imageError
+                    ? 'Subí una foto de la prenda'
+                    : 'Tocá para subir una foto de la prenda'}
+                </span>
+              </div>
             )}
 
             <input
@@ -174,9 +190,9 @@ export default function CreatePostModal({
             />
           </label>
 
-          <div className="md:w-1/2 p-5 flex flex-col gap-2 max-h-[80vh] overflow-y-auto">
+          <div className="w-full md:w-1/2 min-w-0 p-5 sm:p-6 flex flex-col gap-3 md:max-h-[90dvh] md:overflow-y-auto">
 
-            <h2 className="font-display font-bold text-lg text-ink mb-1">
+            <h2 className="font-display font-bold text-xl text-white mb-2 pr-10">
               Publicar prenda
             </h2>
 
@@ -187,11 +203,12 @@ export default function CreatePostModal({
               className={inputClass}
             />
 
-            <input
+            <textarea
               name="descripcion"
               placeholder="Descripción"
               required
-              className={inputClass}
+              rows={3}
+              className="block w-full min-w-0 min-h-24 box-border bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 py-3 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] focus:ring-1 focus:ring-[#4B83D5]/30 resize-y"
             />
 
             <input
@@ -217,19 +234,19 @@ export default function CreatePostModal({
               className={inputClass}
             />
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-[minmax(0,65fr)_minmax(0,35fr)] gap-2 w-full">
               <input
                 name="color"
                 placeholder="Color"
                 required
-                className={inputClass + ' flex-1 min-w-0'}
+                className={inputClass}
               />
 
               <input
                 name="talle"
                 placeholder="Talle"
                 required
-                className={inputClass + ' w-20'}
+                className={inputClass}
               />
             </div>
 
@@ -266,7 +283,7 @@ export default function CreatePostModal({
             />
 
             {error && (
-              <p className="text-red-600 text-sm">
+              <p className="text-red-400 text-sm">
                 {error}
               </p>
             )}
@@ -274,7 +291,7 @@ export default function CreatePostModal({
             <button
               type="submit"
               disabled={cargando}
-              className="mt-2 bg-clay text-white rounded-lg py-2.5 font-medium hover:bg-clay/90 transition-colors disabled:opacity-50"
+              className="mt-2 w-full shrink-0 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg py-3 font-medium transition-colors disabled:opacity-50 cursor-pointer"
             >
               {cargando ? 'Publicando...' : 'Publicar'}
             </button>

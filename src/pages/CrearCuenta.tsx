@@ -101,7 +101,7 @@ export default function CrearCuenta() {
               name="usuario"
               type="text"
               placeholder="Usuario"
-              autoComplete="username"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -110,7 +110,7 @@ export default function CrearCuenta() {
               name="nombre"
               type="text"
               placeholder="Nombre"
-              autoComplete="given-name"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -119,7 +119,7 @@ export default function CrearCuenta() {
               name="apellido"
               type="text"
               placeholder="Apellido"
-              autoComplete="family-name"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -127,7 +127,7 @@ export default function CrearCuenta() {
             <input
               name="fechaNacimiento"
               type="date"
-              autoComplete="bday"
+              autoComplete="off"
               min="1900-01-01"
               max={fechaMaxima}
               required
@@ -146,7 +146,7 @@ export default function CrearCuenta() {
               name="email"
               type="email"
               placeholder="Correo electrónico"
-              autoComplete="email"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -155,7 +155,7 @@ export default function CrearCuenta() {
               name="telefono"
               type="tel"
               placeholder="Teléfono"
-              autoComplete="tel"
+              autoComplete="off"
               required
               className={inputClass}
             />
@@ -165,7 +165,7 @@ export default function CrearCuenta() {
                 name="password"
                 type={mostrarPassword ? 'text' : 'password'}
                 placeholder="Contraseña"
-                autoComplete="new-password"
+                autoComplete="off"
                 data-lpignore="true"
                 data-1p-ignore="true"
                 required
@@ -192,7 +192,7 @@ export default function CrearCuenta() {
                 name="confirmPassword"
                 type={mostrarConfirmPassword ? 'text' : 'password'}
                 placeholder="Confirmar contraseña"
-                autoComplete="new-password"
+                autoComplete="off"
                 data-lpignore="true"
                 data-1p-ignore="true"
                 required
