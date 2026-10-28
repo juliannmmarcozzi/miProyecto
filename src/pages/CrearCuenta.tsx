@@ -16,6 +16,9 @@ export default function CrearCuenta() {
   const inputClass =
     'w-full bg-[#090F1E] text-white placeholder:text-gray-400 px-3 py-2.5 border border-white/5 focus:outline-none focus:border-blue-500';
 
+  const hoy = new Date();
+  const fechaMaxima = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
@@ -27,6 +30,18 @@ export default function CrearCuenta() {
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    const fechaNacimiento = String(datos.get('fechaNacimiento'));
+
+    if (
+      !fechaNacimiento ||
+      fechaNacimiento < '1900-01-01' ||
+      fechaNacimiento > fechaMaxima ||
+      fechaNacimiento.split('-')[0].length !== 4
+    ) {
+      setError('Ingresá una fecha de nacimiento válida.');
       return;
     }
 
@@ -42,7 +57,7 @@ export default function CrearCuenta() {
           nombre_usuario: datos.get('usuario'),
           nombre: datos.get('nombre'),
           apellido: datos.get('apellido'),
-          fecha_nacimiento: datos.get('fechaNacimiento'),
+          fecha_nacimiento: fechaNacimiento,
           email: datos.get('email'),
           contrasena: password,
           numero_telefono: datos.get('telefono'),
@@ -113,8 +128,18 @@ export default function CrearCuenta() {
               name="fechaNacimiento"
               type="date"
               autoComplete="bday"
+              min="1900-01-01"
+              max={fechaMaxima}
               required
-              className={inputClass}
+              onInput={(e) => {
+                const input = e.currentTarget;
+                const año = input.value.split('-')[0];
+
+                if (año.length > 4) {
+                  input.value = '';
+                }
+              }}
+              className={`${inputClass} [color-scheme:dark]`}
             />
 
             <input

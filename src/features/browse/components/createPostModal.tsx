@@ -2,6 +2,8 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { createPost } from '../api/prendas';
 
+const API_URL = 'http://localhost:3000';
+
 export default function CreatePostModal({
   onClose,
   onCreated,
@@ -17,11 +19,34 @@ export default function CreatePostModal({
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
-    if (file) {
-      if (preview) URL.revokeObjectURL(preview);
-      setPreview(URL.createObjectURL(file));
-      setImageError(false);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Seleccioná un archivo de imagen válido.');
+      return;
     }
+
+    if (file.size > 6 * 1024 * 1024) {
+      setError('La imagen no puede superar los 6 MB.');
+      return;
+    }
+
+    setError('');
+    setImageError(false);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setPreview(reader.result);
+      }
+    };
+
+    reader.onerror = () => {
+      setError('No se pudo cargar la imagen.');
+    };
+
+    reader.readAsDataURL(file);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -45,11 +70,16 @@ export default function CreatePostModal({
     setError('');
 
     try {
-      const resPerfil = await fetch('http://localhost:3000/perfil', {
+      const resPerfil = await fetch(`${API_URL}/mi_perfil`, {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (resPerfil.status === 401) {
+        throw new Error('Tu sesión venció. Volvé a iniciar sesión.');
+      }
 
       if (!resPerfil.ok) {
         throw new Error('No se pudo obtener el usuario.');
@@ -61,25 +91,28 @@ export default function CreatePostModal({
         throw new Error('No se encontró el ID del usuario.');
       }
 
-      await createPost({
-        titulo: String(datos.get('titulo')),
-        descripcion: String(datos.get('descripcion')),
-        precio: Number(datos.get('precio')),
-        imagenes: [preview],
-        tipoPrenda: String(datos.get('tipoPrenda')),
-        marca: String(datos.get('marca')),
-        color: String(datos.get('color')),
-        talle: String(datos.get('talle')),
-        estado: String(datos.get('estado')),
-        genero: String(datos.get('genero')),
-        stock: Number(datos.get('stock')),
-      }, usuario.id);
+      await createPost(
+        {
+          titulo: String(datos.get('titulo')),
+          descripcion: String(datos.get('descripcion')),
+          precio: Number(datos.get('precio')),
+          imagenes: [preview],
+          tipoPrenda: String(datos.get('tipoPrenda')),
+          marca: String(datos.get('marca')),
+          color: String(datos.get('color')),
+          talle: String(datos.get('talle')),
+          estado: String(datos.get('estado')),
+          genero: String(datos.get('genero')),
+          stock: Number(datos.get('stock')),
+        },
+        usuario.id
+      );
 
       onCreated();
       onClose();
-
     } catch (error) {
       console.error(error);
+
       setError(
         error instanceof Error
           ? error.message

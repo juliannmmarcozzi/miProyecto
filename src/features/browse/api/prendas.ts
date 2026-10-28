@@ -1,3 +1,4 @@
+
 export interface Prenda {
   id: string;
   titulo: string;
@@ -17,12 +18,21 @@ export interface Prenda {
   fechaPublicacion: string;
 }
 
-type NuevaPrenda = Omit<Prenda, 'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'>;
+type NuevaPrenda = Omit<
+  Prenda,
+  'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'
+>;
 
 const API_URL = 'http://localhost:3000';
 
 export async function getPrendas(): Promise<Prenda[]> {
-  const res = await fetch(`${API_URL}/prendas`);
+  const token = localStorage.getItem('token');
+
+  const res = await fetch(`${API_URL}/productos`, {
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  });
 
   if (!res.ok) {
     throw new Error('Error al obtener las prendas');
@@ -56,16 +66,21 @@ export async function getPrenda(id: string): Promise<Prenda | undefined> {
   return prendas.find((prenda) => prenda.id === id);
 }
 
-// crear un post/prenda
-
 export async function createPost(
   nuevaPrenda: NuevaPrenda,
   usuarioId: number
 ) {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    throw new Error('Tenés que iniciar sesión para publicar.');
+  }
+
   const res = await fetch(`${API_URL}/crear_publicacion`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       talle: nuevaPrenda.talle,
@@ -83,13 +98,16 @@ export async function createPost(
     }),
   });
 
+  const resultado = await res.json();
+
   if (!res.ok) {
-    throw new Error(`Error al crear publicación: ${res.status}`);
+    throw new Error(
+      resultado.error || `Error al crear publicación: ${res.status}`
+    );
   }
 
-  return res.json();
+  return resultado;
 }
-
 
 export interface PublicacionBackend {
   id: number;
@@ -116,4 +134,3 @@ export async function getMisPublicaciones(
 
   return res.json();
 }
-
