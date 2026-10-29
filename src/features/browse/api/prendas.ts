@@ -55,7 +55,7 @@ export async function getPrendas(): Promise<Prenda[]> {
     visualizaciones: producto.visualizaciones ?? 0,
     genero: producto.genero ?? '',
     stock: producto.stock ?? 0,
-    usuario: String(producto.usuario_publicador_id),
+    usuario: producto.vendedor_nombre_usuario ?? String(producto.usuario_publicador_id),
     fechaPublicacion: producto.fecha_publicacion,
   }));
 }
@@ -120,6 +120,7 @@ export interface PublicacionBackend {
   estado_condicion: string;
   marca: string;
   usuario_publicador_id: number;
+  nombre_usuario?: string;
   fecha_publicacion: string;
 }
 
@@ -133,4 +134,67 @@ export async function getMisPublicaciones(
   }
 
   return res.json();
+}
+
+
+export interface DatosEditarPublicacion {
+  titulo?: string;
+  descripcion?: string;
+  precio?: number;
+  marca?: string;
+  color?: string;
+  talle?: string;
+  estado_condicion?: string;
+  foto?: string;
+}
+
+export async function editarPublicacion(
+  id: number,
+  datos: DatosEditarPublicacion
+): Promise<PublicacionBackend> {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    throw new Error('Tenés que iniciar sesión.');
+  }
+
+  const res = await fetch(`${API_URL}/editar_publicacion/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(datos),
+  });
+
+  const resultado = await res.json();
+
+  if (!res.ok) {
+    throw new Error(resultado.error || 'No se pudo editar la publicación.');
+  }
+
+  return resultado;
+}
+
+export async function eliminarPublicacion(id: number): Promise<void> {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    throw new Error('Tenés que iniciar sesión.');
+  }
+
+  const res = await fetch(`${API_URL}/eliminar_publicacion/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const resultado = await res.json().catch(() => ({}));
+
+    throw new Error(
+      resultado.error || 'No se pudo eliminar la publicación.'
+    );
+  }
 }
