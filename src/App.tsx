@@ -27,7 +27,7 @@ export default function App() {
           <Route path="/mis-publicaciones" element={<MisPublicaciones />} />
           <Route path="/mis-pedidos" element={<MisPedidos />} />
           <Route path="/chat/:id" element={<Chat />} />
-          <Route path="/comprar/:id" element={<Comprar />} />
+          <Route path="/comprar" element={<Comprar />} />
         </Route>
       </Routes>
     </BrowserRouter>

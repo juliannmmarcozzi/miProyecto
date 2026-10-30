@@ -144,7 +144,7 @@ export default function VistaArticulo() {
                   strokeLinejoin="round"
                   className="w-7 h-7 shrink-0"
                 >
-                  <path d="m16 4 4 3-3 5-3-2v11H6V10l-3 2-2-5 5-3 3 2h4l3-2Z" />
+                  <path d="m16 4 4 3-3 5-3-2v11H6V10l-3 2-2-5 5-3 3 2Z" />
                 </svg>
 
                 <div>
@@ -185,9 +185,10 @@ export default function VistaArticulo() {
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button
                 type="button"
+                onClick={() => navigate(`/comprar?id=${prenda.id}`)}
                 className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl py-3.5 font-semibold transition-colors cursor-pointer"
               >
-                Comprar ahora
+                Solicitá tu compra
               </button>
 
               <button
