@@ -321,7 +321,7 @@ export default function HeaderActions({
         aria-label="Filtros"
       >
         <img
-          src="/newpost.png"
+          src="/filter.png"
           alt=""
           className="w-5 h-5 object-contain brightness-0 invert"
         />

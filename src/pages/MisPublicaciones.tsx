@@ -3,6 +3,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { subirImagen } from '../lib/subirImagen';
 import {
   getMisPublicaciones,
   editarPublicacion,
@@ -28,7 +29,17 @@ export default function MisPublicaciones() {
   const [guardando, setGuardando] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [errorModal, setErrorModal] = useState('');
+
+  const [archivoImagen, setArchivoImagen] = useState<File | null>(null);
   const [imagenEditada, setImagenEditada] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (imagenEditada) {
+        URL.revokeObjectURL(imagenEditada);
+      }
+    };
+  }, [imagenEditada]);
 
   useEffect(() => {
     let activo = true;
@@ -86,6 +97,7 @@ export default function MisPublicaciones() {
 
   function abrirEdicion(publicacion: PublicacionBackend) {
     setEditando(publicacion);
+    setArchivoImagen(null);
     setImagenEditada(null);
     setErrorModal('');
   }
@@ -100,8 +112,14 @@ export default function MisPublicaciones() {
 
     if (!archivo) return;
 
-    if (!archivo.type.startsWith('image/')) {
-      setErrorModal('Seleccioná una imagen válida.');
+    const tiposPermitidos = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!tiposPermitidos.includes(archivo.type)) {
+      setErrorModal('Solo se permiten imágenes JPG, PNG o WebP.');
       return;
     }
 
@@ -110,21 +128,14 @@ export default function MisPublicaciones() {
       return;
     }
 
+    if (archivo.size === 0) {
+      setErrorModal('La imagen está vacía.');
+      return;
+    }
+
     setErrorModal('');
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImagenEditada(reader.result);
-      }
-    };
-
-    reader.onerror = () => {
-      setErrorModal('No se pudo cargar la imagen.');
-    };
-
-    reader.readAsDataURL(archivo);
+    setArchivoImagen(archivo);
+    setImagenEditada(URL.createObjectURL(archivo));
   }
 
   async function guardarCambios(e: FormEvent<HTMLFormElement>) {
@@ -133,7 +144,6 @@ export default function MisPublicaciones() {
     if (!editando || guardando) return;
 
     const datos = new FormData(e.currentTarget);
-
     const precio = Number(datos.get('precio'));
 
     if (!Number.isFinite(precio) || precio <= 0) {
@@ -145,6 +155,12 @@ export default function MisPublicaciones() {
     setErrorModal('');
 
     try {
+      let urlImagen: string | undefined;
+
+      if (archivoImagen) {
+        urlImagen = await subirImagen(archivoImagen);
+      }
+
       const actualizada = await editarPublicacion(editando.id, {
         titulo: String(datos.get('titulo')).trim(),
         descripcion: String(datos.get('descripcion')).trim(),
@@ -153,7 +169,7 @@ export default function MisPublicaciones() {
         color: String(datos.get('color')).trim(),
         talle: String(datos.get('talle')).trim(),
         estado_condicion: String(datos.get('estado')),
-        ...(imagenEditada ? { foto: imagenEditada } : {}),
+        ...(urlImagen ? { foto: urlImagen } : {}),
       });
 
       setPublicaciones((anteriores) =>
@@ -163,8 +179,11 @@ export default function MisPublicaciones() {
       );
 
       setEditando(null);
+      setArchivoImagen(null);
       setImagenEditada(null);
     } catch (error) {
+      console.error(error);
+
       setErrorModal(
         error instanceof Error
           ? error.message
@@ -343,8 +362,12 @@ export default function MisPublicaciones() {
               <button
                 type="button"
                 disabled={guardando}
-                onClick={() => setEditando(null)}
-                className="text-[#A9BAD0] hover:text-white text-xl cursor-pointer"
+                onClick={() => {
+                  setEditando(null);
+                  setArchivoImagen(null);
+                  setImagenEditada(null);
+                }}
+                className="text-[#A9BAD0] hover:text-white text-xl cursor-pointer disabled:opacity-50"
                 aria-label="Cerrar"
               >
                 ✕
@@ -367,11 +390,20 @@ export default function MisPublicaciones() {
                   )}
                 </div>
 
-                <label className="text-sm text-[#93C5FD] cursor-pointer hover:text-white">
+                <label
+                  className={
+                    'text-sm text-[#93C5FD] hover:text-white ' +
+                    (guardando
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer')
+                  }
+                >
                   Cambiar imagen
+
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={guardando}
                     onChange={cambiarImagen}
                     className="hidden"
                   />
@@ -384,6 +416,7 @@ export default function MisPublicaciones() {
                 placeholder="Título"
                 autoComplete="off"
                 required
+                disabled={guardando}
                 className={inputClass}
               />
 
@@ -393,6 +426,7 @@ export default function MisPublicaciones() {
                 placeholder="Descripción"
                 rows={3}
                 required
+                disabled={guardando}
                 className={inputClass + ' resize-y'}
               />
 
@@ -404,6 +438,7 @@ export default function MisPublicaciones() {
                 defaultValue={editando.precio}
                 placeholder="Precio"
                 required
+                disabled={guardando}
                 className={inputClass}
               />
 
@@ -413,6 +448,7 @@ export default function MisPublicaciones() {
                 placeholder="Marca"
                 autoComplete="off"
                 required
+                disabled={guardando}
                 className={inputClass}
               />
 
@@ -423,6 +459,7 @@ export default function MisPublicaciones() {
                   placeholder="Color"
                   autoComplete="off"
                   required
+                  disabled={guardando}
                   className={inputClass}
                 />
 
@@ -432,6 +469,7 @@ export default function MisPublicaciones() {
                   placeholder="Talle"
                   autoComplete="off"
                   required
+                  disabled={guardando}
                   className={inputClass}
                 />
               </div>
@@ -440,6 +478,7 @@ export default function MisPublicaciones() {
                 name="estado"
                 defaultValue={editando.estado_condicion}
                 required
+                disabled={guardando}
                 className={inputClass}
               >
                 <option value="Nuevo">Nuevo</option>
@@ -447,15 +486,21 @@ export default function MisPublicaciones() {
               </select>
 
               {errorModal && (
-                <p className="text-red-400 text-sm">{errorModal}</p>
+                <p className="text-red-400 text-sm">
+                  {errorModal}
+                </p>
               )}
 
               <div className="flex gap-3 mt-4">
                 <button
                   type="button"
                   disabled={guardando}
-                  onClick={() => setEditando(null)}
-                  className="flex-1 border border-[#294768] rounded-lg py-3 text-sm text-white hover:bg-[#172A45] cursor-pointer"
+                  onClick={() => {
+                    setEditando(null);
+                    setArchivoImagen(null);
+                    setImagenEditada(null);
+                  }}
+                  className="flex-1 border border-[#294768] rounded-lg py-3 text-sm text-white hover:bg-[#172A45] cursor-pointer disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -497,7 +542,7 @@ export default function MisPublicaciones() {
                 type="button"
                 disabled={borrando}
                 onClick={() => setEliminando(null)}
-                className="flex-1 border border-[#294768] text-white rounded-lg py-3 text-sm hover:bg-[#172A45] cursor-pointer"
+                className="flex-1 border border-[#294768] text-white rounded-lg py-3 text-sm hover:bg-[#172A45] cursor-pointer disabled:opacity-50"
               >
                 Cancelar
               </button>

@@ -1,6 +1,7 @@
 
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { createPost } from '../api/prendas';
+import { subirImagen } from '../../../lib/subirImagen';
 
 const API_URL = 'http://localhost:3000';
 
@@ -11,18 +12,33 @@ export default function CreatePostModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [archivoImagen, setArchivoImagen] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Seleccioná un archivo de imagen válido.');
+    const tiposPermitidos = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!tiposPermitidos.includes(file.type)) {
+      setError('Solo se permiten imágenes JPG, PNG o WebP.');
       return;
     }
 
@@ -31,28 +47,23 @@ export default function CreatePostModal({
       return;
     }
 
+    if (file.size === 0) {
+      setError('La imagen está vacía.');
+      return;
+    }
+
     setError('');
     setImageError(false);
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setPreview(reader.result);
-      }
-    };
-
-    reader.onerror = () => {
-      setError('No se pudo cargar la imagen.');
-    };
-
-    reader.readAsDataURL(file);
+    setArchivoImagen(file);
+    setPreview(URL.createObjectURL(file));
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!preview) {
+    if (cargando) return;
+
+    if (!archivoImagen) {
       setImageError(true);
       return;
     }
@@ -90,12 +101,14 @@ export default function CreatePostModal({
         throw new Error('No se encontró el ID del usuario.');
       }
 
+      const urlImagen = await subirImagen(archivoImagen);
+
       await createPost(
         {
           titulo: String(datos.get('titulo')),
           descripcion: String(datos.get('descripcion')),
           precio: Number(datos.get('precio')),
-          imagenes: [preview],
+          imagenes: [urlImagen],
           tipoPrenda: String(datos.get('tipoPrenda')),
           marca: String(datos.get('marca')),
           color: String(datos.get('color')),
@@ -111,6 +124,7 @@ export default function CreatePostModal({
       onClose();
     } catch (error) {
       console.error(error);
+
       setError(
         error instanceof Error
           ? error.message
@@ -131,7 +145,8 @@ export default function CreatePostModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-[#172A45] hover:bg-[#294768] text-white flex items-center justify-center cursor-pointer transition-colors"
+          disabled={cargando}
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-[#172A45] hover:bg-[#294768] text-white flex items-center justify-center cursor-pointer transition-colors disabled:opacity-50"
           aria-label="Cerrar"
         >
           ✕
@@ -184,7 +199,8 @@ export default function CreatePostModal({
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={cargando}
               className="hidden"
               onChange={handleImageChange}
             />
@@ -200,6 +216,7 @@ export default function CreatePostModal({
               name="titulo"
               placeholder="Título"
               required
+              disabled={cargando}
               className={inputClass}
             />
 
@@ -207,6 +224,7 @@ export default function CreatePostModal({
               name="descripcion"
               placeholder="Descripción"
               required
+              disabled={cargando}
               rows={3}
               className="block w-full min-w-0 min-h-24 box-border bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 py-3 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] focus:ring-1 focus:ring-[#4B83D5]/30 resize-y"
             />
@@ -217,6 +235,7 @@ export default function CreatePostModal({
               min="1"
               placeholder="Precio"
               required
+              disabled={cargando}
               className={inputClass}
             />
 
@@ -224,6 +243,7 @@ export default function CreatePostModal({
               name="tipoPrenda"
               placeholder="Tipo de prenda"
               required
+              disabled={cargando}
               className={inputClass}
             />
 
@@ -231,6 +251,7 @@ export default function CreatePostModal({
               name="marca"
               placeholder="Marca"
               required
+              disabled={cargando}
               className={inputClass}
             />
 
@@ -239,6 +260,7 @@ export default function CreatePostModal({
                 name="color"
                 placeholder="Color"
                 required
+                disabled={cargando}
                 className={inputClass}
               />
 
@@ -246,6 +268,7 @@ export default function CreatePostModal({
                 name="talle"
                 placeholder="Talle"
                 required
+                disabled={cargando}
                 className={inputClass}
               />
             </div>
@@ -254,6 +277,7 @@ export default function CreatePostModal({
               name="estado"
               required
               defaultValue=""
+              disabled={cargando}
               className={inputClass}
             >
               <option value="" disabled>Estado</option>
@@ -265,6 +289,7 @@ export default function CreatePostModal({
               name="genero"
               required
               defaultValue=""
+              disabled={cargando}
               className={inputClass}
             >
               <option value="" disabled>Género</option>
@@ -279,6 +304,7 @@ export default function CreatePostModal({
               min="1"
               placeholder="Stock"
               required
+              disabled={cargando}
               className={inputClass}
             />
 
