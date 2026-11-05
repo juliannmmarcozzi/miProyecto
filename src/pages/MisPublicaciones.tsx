@@ -11,7 +11,7 @@ import {
   type PublicacionBackend,
 } from '../features/browse/api/prendas';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const inputClass =
   'w-full min-w-0 bg-[#0B192D] border border-[#294768] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5]';

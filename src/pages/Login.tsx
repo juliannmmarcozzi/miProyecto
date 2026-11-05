@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavMenu from '../components/NavMenu';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,6 +20,8 @@ export default function Login() {
     setError('');
 
     const datos = new FormData(e.currentTarget);
+    const nombreUsuario = String(datos.get('usuario') || '').trim();
+
     setCargando(true);
 
     try {
@@ -29,18 +31,24 @@ export default function Login() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nombre_usuario: datos.get('usuario'),
+          nombre_usuario: nombreUsuario,
           contrasena: datos.get('password'),
         }),
       });
 
-      if (res.status === 200) {
-        const data = await res.json();
+      const data = await res.json();
 
+      if (res.status === 200) {
         localStorage.setItem('token', data.token);
-        navigate('/perfil');
+
+        // IR A HOME Y MOSTRAR BIENVENIDA
+        navigate('/', {
+          replace: true,
+          state: {
+            bienvenida: nombreUsuario,
+          },
+        });
       } else {
-        const data = await res.json();
         setError(data.error || 'Usuario o contraseña incorrectos');
       }
     } catch (error) {
@@ -54,6 +62,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[#10182D] text-white">
       <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
+
         <img
           src="/image%204.png"
           alt=""
@@ -65,10 +74,12 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 w-full max-w-[340px] min-h-[510px] bg-[#10182D] px-9 pt-16 pb-5 flex flex-col">
+
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
+
             <input
               name="usuario"
               type="text"
@@ -79,6 +90,7 @@ export default function Login() {
             />
 
             <div className="relative">
+
               <input
                 name="password"
                 type={mostrarPassword ? 'text' : 'password'}
@@ -91,7 +103,11 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setMostrarPassword(!mostrarPassword)}
-                aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-label={
+                  mostrarPassword
+                    ? 'Ocultar contraseña'
+                    : 'Mostrar contraseña'
+                }
                 aria-pressed={mostrarPassword}
                 className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
               >
@@ -101,6 +117,7 @@ export default function Login() {
                   className="w-5 h-5"
                 />
               </button>
+
             </div>
 
             {error && (
@@ -116,6 +133,7 @@ export default function Login() {
             >
               {cargando ? 'Ingresando...' : 'Iniciar sesión'}
             </button>
+
           </form>
 
           <div className="flex-1" />
@@ -126,6 +144,7 @@ export default function Login() {
           >
             Crear cuenta
           </Link>
+
         </div>
       </main>
     </div>

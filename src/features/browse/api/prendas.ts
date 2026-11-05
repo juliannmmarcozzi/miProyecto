@@ -23,7 +23,7 @@ type NuevaPrenda = Omit<
   'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'
 >;
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export async function getPrendas(): Promise<Prenda[]> {
   const token = localStorage.getItem('token');
@@ -135,7 +135,6 @@ export async function getMisPublicaciones(
 
   return res.json();
 }
-
 
 export interface DatosEditarPublicacion {
   titulo?: string;

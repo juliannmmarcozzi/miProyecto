@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavMenu from '../components/NavMenu';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL
 
 export default function CrearCuenta() {
   const navigate = useNavigate();
