@@ -1,7 +1,34 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getPrenda, type Prenda } from '../features/browse/api/prendas';
+import {
+  getPrenda,
+  type Prenda,
+} from '../features/browse/api/prendas';
+import ReportarModal from '../components/ReportarModal';
+
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+interface ResenaProducto {
+  id: number;
+  estrellas: number;
+  comentario: string | null;
+  fecha: string;
+  nombre_usuario: string;
+  foto_perfil: string | null;
+}
+
+interface ResumenResenas {
+  cantidad: number;
+  promedio: number | null;
+  resenas: ResenaProducto[];
+}
+
+interface UsuarioPublico {
+  id: number;
+  nombre_usuario: string;
+}
 
 export default function VistaArticulo() {
   const { id } = useParams();
@@ -10,7 +37,22 @@ export default function VistaArticulo() {
   const [prenda, setPrenda] = useState<Prenda | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  const [mostrarDetalles, setMostrarDetalles] = useState(false);
+  const [mostrarDetalles, setMostrarDetalles] =
+    useState(false);
+
+  const [resenas, setResenas] =
+    useState<ResumenResenas | null>(null);
+  const [cargandoResenas, setCargandoResenas] =
+    useState(true);
+  const [errorResenas, setErrorResenas] = useState('');
+
+  const [mostrarReporte, setMostrarReporte] =
+    useState(false);
+  const [usuarioVendedorId, setUsuarioVendedorId] =
+    useState<number | null>(null);
+  const [cargandoVendedor, setCargandoVendedor] =
+    useState(false);
+  const [errorReporte, setErrorReporte] = useState('');
 
   useEffect(() => {
     if (!id) {
@@ -25,13 +67,18 @@ export default function VistaArticulo() {
     setError('');
     setPrenda(null);
     setMostrarDetalles(false);
+    setUsuarioVendedorId(null);
+    setMostrarReporte(false);
+    setErrorReporte('');
 
     getPrenda(id)
       .then((datos) => {
         if (activo) setPrenda(datos ?? null);
       })
       .catch(() => {
-        if (activo) setError('No se pudo cargar la prenda.');
+        if (activo) {
+          setError('No se pudo cargar la prenda.');
+        }
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -41,6 +88,165 @@ export default function VistaArticulo() {
       activo = false;
     };
   }, [id]);
+
+  // CARGAR CALIFICACIONES PÚBLICAS
+  useEffect(() => {
+    if (!id) {
+      setCargandoResenas(false);
+      return;
+    }
+
+    let activo = true;
+
+    async function cargarResenas() {
+      try {
+        setCargandoResenas(true);
+        setErrorResenas('');
+        setResenas(null);
+
+        const respuesta = await fetch(
+          `${API_URL}/productos/${encodeURIComponent(
+            id!
+          )}/resenas`
+        );
+
+        if (!respuesta.ok) {
+          throw new Error(
+            'No se pudieron cargar las calificaciones.'
+          );
+        }
+
+        const datos: ResumenResenas =
+          await respuesta.json();
+
+        if (activo) {
+          setResenas(datos);
+        }
+      } catch (err) {
+        if (activo) {
+          setErrorResenas(
+            err instanceof Error
+              ? err.message
+              : 'Error al cargar las reseñas.'
+          );
+        }
+      } finally {
+        if (activo) {
+          setCargandoResenas(false);
+        }
+      }
+    }
+
+    void cargarResenas();
+
+    return () => {
+      activo = false;
+    };
+  }, [id]);
+
+  // REPORTAR PUBLICACIÓN
+  async function abrirReporte() {
+    if (!prenda || cargandoVendedor) return;
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    setErrorReporte('');
+
+    if (usuarioVendedorId !== null) {
+      setMostrarReporte(true);
+      return;
+    }
+
+    setCargandoVendedor(true);
+
+    try {
+      const respuesta = await fetch(
+        `${API_URL}/usuarios/${encodeURIComponent(
+          prenda.usuario
+        )}`
+      );
+
+      if (!respuesta.ok) {
+        throw new Error(
+          'No se pudo identificar al vendedor.'
+        );
+      }
+
+      const datos: UsuarioPublico =
+        await respuesta.json();
+
+      if (!Number.isInteger(Number(datos.id))) {
+        throw new Error(
+          'El servidor no devolvió un ID de vendedor válido.'
+        );
+      }
+
+      const vendedorId = Number(datos.id);
+
+      const respuestaYo = await fetch(
+        `${API_URL}/yo`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (respuestaYo.ok) {
+        const datosYo = await respuestaYo.json();
+
+        if (
+          Number(datosYo.usuario?.id) === vendedorId
+        ) {
+          throw new Error(
+            'No podés reportar tu propia publicación.'
+          );
+        }
+      }
+
+      setUsuarioVendedorId(vendedorId);
+      setMostrarReporte(true);
+    } catch (err) {
+      setErrorReporte(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo abrir el reporte.'
+      );
+    } finally {
+      setCargandoVendedor(false);
+    }
+  }
+
+  function formatearFecha(fecha: string) {
+    const valor = new Date(fecha);
+
+    if (Number.isNaN(valor.getTime())) {
+      return 'Fecha no disponible';
+    }
+
+    return valor.toLocaleDateString('es-AR');
+  }
+
+  function irAComprar() {
+    if (!prenda) return;
+
+    navigate(
+      `/comprar?id=${encodeURIComponent(prenda.id)}`
+    );
+  }
+
+  function irAOfertar() {
+    if (!prenda) return;
+
+    navigate(
+      `/ofertar?id=${encodeURIComponent(prenda.id)}`
+    );
+  }
 
   if (cargando || error || !prenda) {
     return (
@@ -63,24 +269,42 @@ export default function VistaArticulo() {
     );
   }
 
-  const precioFormateado = Number(prenda.precio).toLocaleString('es-AR');
+  const precioFormateado = Number(
+    prenda.precio
+  ).toLocaleString('es-AR');
 
   const fecha = prenda.fechaPublicacion
-    ? new Date(prenda.fechaPublicacion).toLocaleDateString('es-AR')
+    ? new Date(
+        prenda.fechaPublicacion
+      ).toLocaleDateString('es-AR')
     : 'No especificada';
 
   const detalles = [
-    { nombre: 'Tipo de prenda', valor: prenda.tipoPrenda },
-    { nombre: 'Color', valor: prenda.color },
-    { nombre: 'Género', valor: prenda.genero },
-    { nombre: 'Stock', valor: prenda.stock > 0 ? prenda.stock : null },
-    { nombre: 'Fecha de publicación', valor: fecha },
+    {
+      nombre: 'Tipo de prenda',
+      valor: prenda.tipoPrenda,
+    },
+    {
+      nombre: 'Color',
+      valor: prenda.color,
+    },
+    {
+      nombre: 'Género',
+      valor: prenda.genero,
+    },
+    {
+      nombre: 'Stock',
+      valor: prenda.stock > 0 ? prenda.stock : null,
+    },
+    {
+      nombre: 'Fecha de publicación',
+      valor: fecha,
+    },
   ];
 
   return (
     <div className="min-h-dvh bg-[#0D1628] text-[#E7ECF5]">
       <main className="max-w-7xl mx-auto px-5 sm:px-8 py-6">
-
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm text-[#A9BAD0] hover:text-white transition-colors mb-7"
@@ -99,11 +323,12 @@ export default function VistaArticulo() {
               <path d="M12 19l-7-7 7-7" />
             </svg>
           </span>
+
           Volver a publicaciones
         </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
-
+          {/* IMAGEN */}
           <div className="w-full aspect-square max-h-[65vh] bg-[#102039] border border-[#294768] rounded-xl overflow-hidden flex items-center justify-center">
             {prenda.imagenes[0] ? (
               <img
@@ -118,8 +343,8 @@ export default function VistaArticulo() {
             )}
           </div>
 
+          {/* DATOS DE LA PRENDA */}
           <div className="flex flex-col min-w-0">
-
             <h1 className="font-display font-bold text-2xl sm:text-3xl text-white leading-tight">
               {prenda.titulo}
             </h1>
@@ -132,8 +357,32 @@ export default function VistaArticulo() {
               ${precioFormateado}
             </p>
 
-            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl mt-6 px-5">
+            {/* RESUMEN DE CALIFICACIONES */}
+            {resenas && resenas.cantidad > 0 && (
+              <a
+                href="#resenas-prenda"
+                className="inline-flex items-center gap-2 mt-3 text-sm text-[#D5E3F4] hover:text-white"
+              >
+                <span className="text-amber-400">
+                  ★
+                </span>
 
+                <span className="font-semibold">
+                  {resenas.promedio?.toLocaleString('es-AR') ??
+                    '-'}
+                </span>
+
+                <span className="text-[#91A5BF]">
+                  ({resenas.cantidad}{' '}
+                  {resenas.cantidad === 1
+                    ? 'calificación'
+                    : 'calificaciones'})
+                </span>
+              </a>
+            )}
+
+            {/* CARACTERÍSTICAS PRINCIPALES */}
+            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl mt-6 px-5">
               <div className="flex items-center gap-4 py-4 border-b border-[#253854]">
                 <svg
                   viewBox="0 0 24 24"
@@ -151,6 +400,7 @@ export default function VistaArticulo() {
                   <p className="text-xs text-[#91A5BF]">
                     Talle
                   </p>
+
                   <p className="text-sm font-semibold text-white">
                     {prenda.talle || 'No especificado'}
                   </p>
@@ -175,6 +425,7 @@ export default function VistaArticulo() {
                   <p className="text-xs text-[#91A5BF]">
                     Estado de la prenda
                   </p>
+
                   <p className="text-sm font-semibold text-white">
                     {prenda.estado || 'No especificado'}
                   </p>
@@ -182,10 +433,11 @@ export default function VistaArticulo() {
               </div>
             </div>
 
+            {/* ACCIONES INDEPENDIENTES */}
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button
                 type="button"
-                onClick={() => navigate(`/comprar?id=${prenda.id}`)}
+                onClick={irAComprar}
                 className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl py-3.5 font-semibold transition-colors cursor-pointer"
               >
                 Solicitá tu compra
@@ -193,24 +445,31 @@ export default function VistaArticulo() {
 
               <button
                 type="button"
+                onClick={irAOfertar}
                 className="border border-[#3B82F6] hover:bg-[#172A45] text-[#E7ECF5] rounded-xl py-3.5 font-semibold transition-colors cursor-pointer"
               >
                 Ofertar
               </button>
             </div>
 
+            {/* MENSAJES */}
             <button
               type="button"
-              onClick={() => navigate(`/chat/${prenda.id}`)}
+              onClick={() =>
+                navigate(`/chat/${prenda.id}`)
+              }
               className="mt-3 w-full border border-[#294768] bg-[#172A45] hover:bg-[#213C5D] text-[#E7ECF5] rounded-xl py-3 font-medium transition-colors cursor-pointer"
             >
               Enviar mensaje
             </button>
 
+            {/* DETALLES */}
             <div className="mt-7 border-t border-[#294768] pt-4">
               <button
                 type="button"
-                onClick={() => setMostrarDetalles(!mostrarDetalles)}
+                onClick={() =>
+                  setMostrarDetalles(!mostrarDetalles)
+                }
                 aria-expanded={mostrarDetalles}
                 className="w-full flex items-center justify-between text-sm text-[#B9C9DC] hover:text-white transition-colors cursor-pointer"
               >
@@ -245,7 +504,8 @@ export default function VistaArticulo() {
                       </span>
 
                       <span className="text-[#E7ECF5] text-right">
-                        {detalle.valor || 'No especificado'}
+                        {detalle.valor ||
+                          'No especificado'}
                       </span>
                     </div>
                   ))}
@@ -254,14 +514,17 @@ export default function VistaArticulo() {
                     <p className="text-[#91A5BF] text-sm mb-2">
                       Descripción
                     </p>
+
                     <p className="text-[#D1DCEB] text-sm leading-relaxed whitespace-pre-line">
-                      {prenda.descripcion || 'Sin descripción.'}
+                      {prenda.descripcion ||
+                        'Sin descripción.'}
                     </p>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* VENDEDOR */}
             <div className="flex items-center gap-3 mt-8">
               <div className="w-11 h-11 rounded-full bg-[#172A45] border border-[#294768] flex items-center justify-center text-[#A9BAD0]">
                 <svg
@@ -282,15 +545,158 @@ export default function VistaArticulo() {
                 <p className="text-xs text-[#91A5BF]">
                   Publicado por
                 </p>
-                <p className="text-white font-semibold text-sm">
+
+                <Link
+                  to={`/usuario/${encodeURIComponent(
+                    prenda.usuario
+                  )}`}
+                  className="text-white font-semibold text-sm hover:text-[#75A7F8] transition-colors"
+                >
                   {prenda.usuario}
-                </p>
+                </Link>
               </div>
             </div>
 
+            {/* REPORTAR PUBLICACIÓN */}
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={abrirReporte}
+                disabled={cargandoVendedor}
+                className="text-sm text-red-300 hover:text-red-200 underline underline-offset-4 disabled:opacity-50 cursor-pointer"
+              >
+                {cargandoVendedor
+                  ? 'Cargando...'
+                  : 'Reportar publicación'}
+              </button>
+
+              {errorReporte && (
+                <p
+                  role="alert"
+                  className="mt-2 text-xs text-red-400"
+                >
+                  {errorReporte}
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* RESEÑAS VERIFICADAS */}
+        <section
+          id="resenas-prenda"
+          className="mt-12 border-t border-[#294768] pt-8 scroll-mt-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <h2 className="font-display text-xl font-bold text-white">
+              Calificaciones de compradores
+            </h2>
+
+            {resenas && resenas.cantidad > 0 && (
+              <span className="text-sm text-[#D5E3F4]">
+                <span className="text-amber-400">
+                  ★
+                </span>{' '}
+                {resenas.promedio?.toLocaleString('es-AR')}{' '}
+                · {resenas.cantidad}{' '}
+                {resenas.cantidad === 1
+                  ? 'reseña'
+                  : 'reseñas'}
+              </span>
+            )}
+          </div>
+
+          {cargandoResenas ? (
+            <p className="text-sm text-[#A9BAD0]">
+              Cargando calificaciones...
+            </p>
+          ) : errorResenas ? (
+            <p className="text-sm text-red-400">
+              {errorResenas}
+            </p>
+          ) : !resenas || resenas.resenas.length === 0 ? (
+            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl p-6">
+              <p className="text-sm text-[#A9BAD0]">
+                Esta prenda todavía no tiene
+                calificaciones de compradores.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {resenas.resenas.map((resena) => (
+                <article
+                  key={resena.id}
+                  className="bg-[#0E1D32] border border-[#294768] rounded-xl p-5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#172A45] border border-[#294768] overflow-hidden flex items-center justify-center shrink-0">
+                      {resena.foto_perfil ? (
+                        <img
+                          src={resena.foto_perfil}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[#A9BAD0]">
+                          {resena.nombre_usuario
+                            .charAt(0)
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {resena.nombre_usuario}
+                      </p>
+
+                      <p className="text-xs text-[#91A5BF]">
+                        {formatearFecha(resena.fecha)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center gap-1 text-amber-400 text-xl mt-4"
+                    aria-label={`${resena.estrellas} de 5 estrellas`}
+                  >
+                    {[1, 2, 3, 4, 5].map((numero) => (
+                      <span key={numero}>
+                        {numero <= resena.estrellas
+                          ? '★'
+                          : '☆'}
+                      </span>
+                    ))}
+                  </div>
+
+                  {resena.comentario && (
+                    <p className="text-sm text-[#D5E3F4] mt-3 whitespace-pre-line">
+                      {resena.comentario}
+                    </p>
+                  )}
+
+                  <span className="inline-block mt-4 text-xs text-[#93C5FD] bg-[#172A45] rounded-full px-3 py-1">
+                    Compra verificada
+                  </span>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* MODAL DE REPORTE */}
+      {usuarioVendedorId !== null && (
+        <ReportarModal
+          abierto={mostrarReporte}
+          onCerrar={() => setMostrarReporte(false)}
+          usuarioReportadoId={usuarioVendedorId}
+          nombreUsuario={prenda.usuario}
+          tipo="publicacion"
+          publicacionId={Number(prenda.id)}
+          tituloPublicacion={prenda.titulo}
+        />
+      )}
     </div>
   );
 }

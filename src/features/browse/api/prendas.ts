@@ -16,14 +16,23 @@ export interface Prenda {
   stock: number;
   usuario: string;
   fechaPublicacion: string;
+  aliasTransferencia?: string;
 }
 
 type NuevaPrenda = Omit<
   Prenda,
-  'id' | 'likes' | 'visualizaciones' | 'usuario' | 'fechaPublicacion'
->;
+  | 'id'
+  | 'likes'
+  | 'visualizaciones'
+  | 'usuario'
+  | 'fechaPublicacion'
+  | 'aliasTransferencia'
+> & {
+  aliasTransferencia: string;
+};
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL =
+  import.meta.env.VITE_API_URL;
 
 export async function getPrendas(): Promise<Prenda[]> {
   const token = localStorage.getItem('token');
@@ -40,6 +49,10 @@ export async function getPrendas(): Promise<Prenda[]> {
 
   const datos = await res.json();
 
+  if (!Array.isArray(datos)) {
+    throw new Error('El servidor devolvió datos inválidos.');
+  }
+
   return datos.map((producto: any) => ({
     id: String(producto.id),
     titulo: producto.titulo,
@@ -55,12 +68,16 @@ export async function getPrendas(): Promise<Prenda[]> {
     visualizaciones: producto.visualizaciones ?? 0,
     genero: producto.genero ?? '',
     stock: producto.stock ?? 0,
-    usuario: producto.vendedor_nombre_usuario ?? String(producto.usuario_publicador_id),
+    usuario:
+      producto.vendedor_nombre_usuario ??
+      String(producto.usuario_publicador_id),
     fechaPublicacion: producto.fecha_publicacion,
   }));
 }
 
-export async function getPrenda(id: string): Promise<Prenda | undefined> {
+export async function getPrenda(
+  id: string
+): Promise<Prenda | undefined> {
   const prendas = await getPrendas();
 
   return prendas.find((prenda) => prenda.id === id);
@@ -74,6 +91,18 @@ export async function createPost(
 
   if (!token) {
     throw new Error('Tenés que iniciar sesión para publicar.');
+  }
+
+  const alias = nuevaPrenda.aliasTransferencia.trim();
+
+  if (!alias) {
+    throw new Error(
+      'Tenés que ingresar tu alias de transferencia.'
+    );
+  }
+
+  if (!Number.isFinite(nuevaPrenda.precio) || nuevaPrenda.precio <= 0) {
+    throw new Error('Ingresá un precio válido.');
   }
 
   const res = await fetch(`${API_URL}/crear_publicacion`, {
@@ -95,14 +124,16 @@ export async function createPost(
       tipo_prenda: nuevaPrenda.tipoPrenda,
       genero: nuevaPrenda.genero,
       stock: nuevaPrenda.stock,
+      alias_transferencia: alias,
     }),
   });
 
-  const resultado = await res.json();
+  const resultado = await res.json().catch(() => ({}));
 
   if (!res.ok) {
     throw new Error(
-      resultado.error || `Error al crear publicación: ${res.status}`
+      resultado.error ||
+      `Error al crear publicación: ${res.status}`
     );
   }
 
@@ -122,12 +153,26 @@ export interface PublicacionBackend {
   usuario_publicador_id: number;
   nombre_usuario?: string;
   fecha_publicacion: string;
+  alias_transferencia?: string;
 }
 
 export async function getMisPublicaciones(
   usuarioId: number
 ): Promise<PublicacionBackend[]> {
-  const res = await fetch(`${API_URL}/publicaciones/${usuarioId}`);
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    throw new Error('Tenés que iniciar sesión.');
+  }
+
+  const res = await fetch(
+    `${API_URL}/publicaciones/${usuarioId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!res.ok) {
     throw new Error('Error al obtener las publicaciones');
@@ -145,6 +190,7 @@ export interface DatosEditarPublicacion {
   talle?: string;
   estado_condicion?: string;
   foto?: string;
+  alias_transferencia?: string;
 }
 
 export async function editarPublicacion(
@@ -157,37 +203,56 @@ export async function editarPublicacion(
     throw new Error('Tenés que iniciar sesión.');
   }
 
-  const res = await fetch(`${API_URL}/editar_publicacion/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(datos),
-  });
+  if (
+    datos.alias_transferencia !== undefined &&
+    !datos.alias_transferencia.trim()
+  ) {
+    throw new Error(
+      'El alias de transferencia no puede estar vacío.'
+    );
+  }
 
-  const resultado = await res.json();
+  const res = await fetch(
+    `${API_URL}/editar_publicacion/${id}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(datos),
+    }
+  );
+
+  const resultado = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(resultado.error || 'No se pudo editar la publicación.');
+    throw new Error(
+      resultado.error || 'No se pudo editar la publicación.'
+    );
   }
 
   return resultado;
 }
 
-export async function eliminarPublicacion(id: number): Promise<void> {
+export async function eliminarPublicacion(
+  id: number
+): Promise<void> {
   const token = localStorage.getItem('token');
 
   if (!token) {
     throw new Error('Tenés que iniciar sesión.');
   }
 
-  const res = await fetch(`${API_URL}/eliminar_publicacion/${id}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetch(
+    `${API_URL}/eliminar_publicacion/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!res.ok) {
     const resultado = await res.json().catch(() => ({}));

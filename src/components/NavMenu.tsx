@@ -2,26 +2,35 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-const links = [
-  { to: '/', label: 'Inicio' },
-  { to: '/mis-publicaciones', label: 'Mis publicaciones' },
-  { to: '/mis-pedidos', label: 'Mis pedidos' },
-  { to: '/perfil', label: 'Perfil' },
-  { to: '/login', label: 'Iniciar sesión' },
-  { to: '/crear-cuenta', label: 'Crear cuenta' },
-];
-
 export default function NavMenu() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
+  const token = localStorage.getItem('token');
+  const estaLogueado = Boolean(token);
+
+  const rutaPerfil = estaLogueado ? '/perfil' : '/login';
+
+  const links = [
+    { to: '/', label: 'Inicio' },
+    { to: '/mis-publicaciones', label: 'Mis publicaciones' },
+    {
+      to: estaLogueado ? '/mis-mensajes' : '/login',
+      label: 'Mis mensajes',
+    },
+    { to: '/mis-pedidos', label: 'Mis pedidos' },
+    { to: rutaPerfil, label: 'Perfil' },
+  ];
+
   return (
     <>
+      {/* BOTÓN HAMBURGUESA */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-11 h-11 rounded-full bg-[#1C2B49]/80 hover:bg-[#263652] text-white flex items-center justify-center transition-colors duration-150"
+        className="w-11 h-11 rounded-full bg-[#1C2B49]/80 hover:bg-[#263652] text-white flex items-center justify-center transition-colors duration-150 cursor-pointer"
         aria-label="Abrir menú"
+        aria-expanded={open}
       >
         <svg
           viewBox="0 0 24 24"
@@ -37,15 +46,17 @@ export default function NavMenu() {
         </svg>
       </button>
 
+      {/* MENÚ LATERAL */}
       {open && (
         <div
           className="fixed inset-0 z-50 bg-black/50"
           onClick={() => setOpen(false)}
         >
           <aside
-            className="absolute top-0 left-0 h-full w-64 bg-[#10182D] text-gray-200 px-5 py-6 font-sans border-r border-white/5"
+            className="absolute top-0 left-0 h-full w-64 bg-[#10182D] text-gray-200 px-5 py-6 font-sans border-r border-white/5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* ENCABEZADO */}
             <div className="flex items-center justify-between mb-8">
               <span className="text-sm font-normal text-gray-300">
                 Menú
@@ -54,7 +65,7 @@ export default function NavMenu() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
                 aria-label="Cerrar menú"
               >
                 <svg
@@ -71,13 +82,21 @@ export default function NavMenu() {
               </button>
             </div>
 
+            {/* OPCIONES DEL MENÚ */}
             <nav className="flex flex-col gap-2">
               {links.map((link) => {
-                const activo = location.pathname === link.to;
+                const activo =
+                  link.label === 'Perfil'
+                    ? location.pathname === '/perfil' ||
+                      location.pathname === '/login'
+                    : link.label === 'Mis mensajes'
+                      ? location.pathname === '/mis-mensajes' ||
+                        location.pathname.startsWith('/mensajes/')
+                      : location.pathname === link.to;
 
                 return (
                   <Link
-                    key={link.to}
+                    key={link.label}
                     to={link.to}
                     onClick={() => setOpen(false)}
                     className={`block px-3 py-3 rounded-md text-sm font-normal transition-colors duration-150 ${

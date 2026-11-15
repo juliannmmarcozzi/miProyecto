@@ -16,9 +16,11 @@ import Login from './pages/Login';
 import VistaArticulo from './pages/VistaArticulo';
 import MisPublicaciones from './pages/MisPublicaciones';
 import MisPedidos from './pages/MisPedidos';
+import MisMensajes from './pages/MisMensajes';
 import PerfilUsuario from './pages/PerfilUsuario';
 import Chat from './pages/Chat';
 import Comprar from './pages/Comprar';
+import Ofertar from './pages/Ofertar';
 import RutaSegura from './components/RutaSegura';
 
 interface EstadoNavegacion {
@@ -33,43 +35,59 @@ function Bienvenida() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const estado = location.state as EstadoNavegacion | null;
+    const estado =
+      location.state as EstadoNavegacion | null;
 
-    if (location.pathname === '/' && estado?.bienvenida) {
+    if (
+      location.pathname === '/' &&
+      estado?.bienvenida
+    ) {
       setNombre(estado.bienvenida);
       setVisible(true);
 
-      // Limpiamos el estado de navegación
       navigate('/', {
         replace: true,
         state: null,
       });
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [
+    location.pathname,
+    location.state,
+    navigate,
+  ]);
 
-  function cerrar() {
-    setVisible(false);
-  }
+  useEffect(() => {
+    if (!visible) return;
 
-  // SOLO MOSTRAR EN HOME
+    const temporizador = window.setTimeout(() => {
+      setVisible(false);
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(temporizador);
+    };
+  }, [visible, nombre]);
+
   if (!visible || location.pathname !== '/') {
     return null;
   }
 
   return (
-    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-md">
-
-      <div className="bg-[#101925] border border-[#34465B] rounded-xl px-5 py-4 shadow-lg flex items-center justify-between gap-5">
-
-        <h2 className="text-white text-base sm:text-lg font-semibold">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-120px)] max-w-md pointer-events-none"
+    >
+      <div className="bg-[#101925]/95 backdrop-blur-md border border-[#34465B] rounded-xl px-5 py-3.5 shadow-2xl flex items-center justify-between gap-4 pointer-events-auto">
+        <h2 className="text-white text-sm sm:text-base font-semibold truncate">
           Bienvenido, {nombre}
         </h2>
 
         <button
           type="button"
-          onClick={cerrar}
+          onClick={() => setVisible(false)}
           aria-label="Cerrar bienvenida"
-          className="text-[#AAB8C8] hover:text-white cursor-pointer shrink-0"
+          className="w-7 h-7 shrink-0 text-[#AAB8C8] hover:text-white flex items-center justify-center cursor-pointer transition-colors"
         >
           <svg
             width="18"
@@ -85,9 +103,7 @@ function Bienvenida() {
             <path d="M6 6l12 12" />
           </svg>
         </button>
-
       </div>
-
     </div>
   );
 }
@@ -98,7 +114,6 @@ function Rutas() {
       <Bienvenida />
 
       <Routes>
-
         {/* PÁGINAS PÚBLICAS */}
         <Route
           path="/"
@@ -127,7 +142,6 @@ function Rutas() {
 
         {/* PÁGINAS PROTEGIDAS */}
         <Route element={<RutaSegura />}>
-
           <Route
             path="/perfil"
             element={<Perfil />}
@@ -139,22 +153,39 @@ function Rutas() {
           />
 
           <Route
+            path="/mis-mensajes"
+            element={<MisMensajes />}
+          />
+
+          <Route
             path="/mis-pedidos"
             element={<MisPedidos />}
           />
 
+          {/* CHAT DESDE UNA PUBLICACIÓN */}
           <Route
             path="/chat/:id"
             element={<Chat />}
           />
 
+          {/* CHAT DESDE NOTIFICACIONES O MENSAJES */}
+          <Route
+            path="/mensajes/:id"
+            element={<Chat />}
+          />
+
+          {/* COMPRA DIRECTA */}
           <Route
             path="/comprar"
             element={<Comprar />}
           />
 
+          {/* OFERTAS */}
+          <Route
+            path="/ofertar"
+            element={<Ofertar />}
+          />
         </Route>
-
       </Routes>
     </>
   );

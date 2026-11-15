@@ -1,6 +1,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
@@ -9,7 +10,8 @@ import {
 import { createPost } from '../api/prendas';
 import { subirImagen } from '../../../lib/subirImagen';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL =
+  import.meta.env.VITE_API_URL
 
 type Pantalla = 'seleccion' | 'manual' | 'ia';
 
@@ -24,6 +26,28 @@ interface DatosPrenda {
   estado: string;
   genero: string;
   stock: string;
+  aliasTransferencia: string;
+}
+
+interface ResultadoIA {
+  categoria?: string | null;
+  subcategoria?: string | null;
+  color?: string | null;
+  marca?: string | null;
+  talle?: string | null;
+  detalles?: string | null;
+}
+
+interface RespuestaIA {
+  prenda?: ResultadoIA;
+  error?: string;
+}
+
+interface FotosSubidas {
+  principal: string;
+  etiqueta: string;
+  archivoPrincipal: File;
+  archivoEtiqueta: File;
 }
 
 const datosIniciales: DatosPrenda = {
@@ -36,23 +60,27 @@ const datosIniciales: DatosPrenda = {
   talle: '',
   estado: '',
   genero: '',
-  stock: '',
+  stock: '1',
+  aliasTransferencia: '',
 };
 
 const inputClass =
-  'block w-full min-w-0 h-11 bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] disabled:opacity-60 disabled:cursor-not-allowed';
+  'block w-full min-w-0 h-11 bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] disabled:opacity-60';
 
 const textareaClass =
-  'block w-full min-w-0 min-h-24 bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 py-3 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] resize-y disabled:opacity-60 disabled:cursor-not-allowed';
+  'block w-full min-w-0 min-h-24 bg-[#0B192D] border border-[#294768] rounded-lg px-3.5 py-3 text-sm text-[#E7ECF5] placeholder:text-[#91A5BF] outline-none focus:border-[#4B83D5] resize-y disabled:opacity-60';
+
+const labelClass =
+  'block text-sm font-medium text-[#C0CDE0] mb-2';
 
 function validarImagen(archivo: File) {
-  const tiposPermitidos = [
+  const tipos = [
     'image/jpeg',
     'image/png',
     'image/webp',
   ];
 
-  if (!tiposPermitidos.includes(archivo.type)) {
+  if (!tipos.includes(archivo.type)) {
     throw new Error(
       'Solo se permiten imágenes JPG, PNG o WebP.'
     );
@@ -69,6 +97,21 @@ function validarImagen(archivo: File) {
   }
 }
 
+function convertirTexto(valor: unknown): string {
+  if (typeof valor === 'string') {
+    return valor.trim();
+  }
+
+  if (
+    typeof valor === 'number' &&
+    Number.isFinite(valor)
+  ) {
+    return String(valor);
+  }
+
+  return '';
+}
+
 export default function CreatePostModal({
   onClose,
   onCreated,
@@ -76,65 +119,80 @@ export default function CreatePostModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  // PANTALLA INICIAL
-  const [pantalla, setPantalla] = useState<Pantalla>(
-    'seleccion'
-  );
+  const [pantalla, setPantalla] =
+    useState<Pantalla>('seleccion');
 
-  // MODO MANUAL
-  const [fotosManuales, setFotosManuales] = useState<File[]>(
-    []
-  );
-  const [previewsManuales, setPreviewsManuales] = useState<
-    string[]
-  >([]);
+  const [fotosManuales, setFotosManuales] =
+    useState<File[]>([]);
 
-  // MODO IA
-  const [fotoPrendaIA, setFotoPrendaIA] = useState<
-    File | null
-  >(null);
+  const [previewsManuales, setPreviewsManuales] =
+    useState<string[]>([]);
 
-  const [fotoEtiquetaIA, setFotoEtiquetaIA] = useState<
-    File | null
-  >(null);
+  const [fotoPrendaIA, setFotoPrendaIA] =
+    useState<File | null>(null);
 
-  const [previewPrendaIA, setPreviewPrendaIA] = useState<
-    string | null
-  >(null);
+  const [fotoEtiquetaIA, setFotoEtiquetaIA] =
+    useState<File | null>(null);
 
-  const [previewEtiquetaIA, setPreviewEtiquetaIA] = useState<
-    string | null
-  >(null);
+  const [previewPrendaIA, setPreviewPrendaIA] =
+    useState<string | null>(null);
 
-  // DATOS DE LA PUBLICACIÓN
+  const [previewEtiquetaIA, setPreviewEtiquetaIA] =
+    useState<string | null>(null);
+
   const [datos, setDatos] = useState<DatosPrenda>({
     ...datosIniciales,
   });
 
-  // PANEL DE IA
-  const [mostrarDatosIA, setMostrarDatosIA] = useState(false);
+  const [resultadoIA, setResultadoIA] =
+    useState<ResultadoIA | null>(null);
+
+  // DESPLEGABLE Y EDICIÓN IA
+  const [mostrarDatosIA, setMostrarDatosIA] =
+    useState(false);
+
   const [editarManualmente, setEditarManualmente] =
     useState(false);
 
-  // ESTADOS GENERALES
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
-  const [mensajeIA, setMensajeIA] = useState('');
+  const [analizado, setAnalizado] =
+    useState(false);
 
-  // PREVIEWS DEL MODO MANUAL
+  const [analizando, setAnalizando] =
+    useState(false);
+
+  const [publicando, setPublicando] =
+    useState(false);
+
+  const [mensajeIA, setMensajeIA] =
+    useState('');
+
+  const [error, setError] =
+    useState('');
+
+  const fotosSubidasRef =
+    useRef<FotosSubidas | null>(null);
+
+  const ocupado = analizando || publicando;
+
+  const camposIABloqueados =
+    pantalla === 'ia' &&
+    !editarManualmente;
+
+  // PREVIEWS
   useEffect(() => {
-    const urls = fotosManuales.map((foto) =>
-      URL.createObjectURL(foto)
+    const urls = fotosManuales.map((archivo) =>
+      URL.createObjectURL(archivo)
     );
 
     setPreviewsManuales(urls);
 
     return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
     };
   }, [fotosManuales]);
 
-  // PREVIEW DE LA FOTO GENERAL DE IA
   useEffect(() => {
     if (!fotoPrendaIA) {
       setPreviewPrendaIA(null);
@@ -148,7 +206,6 @@ export default function CreatePostModal({
     return () => URL.revokeObjectURL(url);
   }, [fotoPrendaIA]);
 
-  // PREVIEW DE LA ETIQUETA
   useEffect(() => {
     if (!fotoEtiquetaIA) {
       setPreviewEtiquetaIA(null);
@@ -162,16 +219,14 @@ export default function CreatePostModal({
     return () => URL.revokeObjectURL(url);
   }, [fotoEtiquetaIA]);
 
-  // NAVEGACIÓN ENTRE PANTALLAS
-  function cambiarPantalla(nuevaPantalla: Pantalla) {
-    if (cargando) return;
+  function cambiarPantalla(nueva: Pantalla) {
+    if (ocupado) return;
 
-    setPantalla(nuevaPantalla);
+    setPantalla(nueva);
     setError('');
     setMensajeIA('');
   }
 
-  // ACTUALIZAR DATOS DEL FORMULARIO
   function actualizarDato(
     campo: keyof DatosPrenda,
     valor: string
@@ -182,17 +237,34 @@ export default function CreatePostModal({
     }));
   }
 
-  // SELECCIONAR FOTOS MANUALMENTE
+  function invalidarAnalisis() {
+    setAnalizado(false);
+    setResultadoIA(null);
+    setMostrarDatosIA(false);
+    setEditarManualmente(false);
+    setMensajeIA('');
+    fotosSubidasRef.current = null;
+
+    setDatos((anteriores) => ({
+      ...anteriores,
+      tipoPrenda: '',
+      marca: '',
+      color: '',
+      talle: '',
+    }));
+  }
+
   function seleccionarFotosManuales(
     e: ChangeEvent<HTMLInputElement>
   ) {
-    const archivos = Array.from(e.target.files ?? []);
+    const archivos = Array.from(
+      e.target.files ?? []
+    );
 
-    if (archivos.length === 0) return;
+    if (!archivos.length) return;
 
     try {
       archivos.forEach(validarImagen);
-
       setFotosManuales(archivos);
       setError('');
     } catch (err) {
@@ -201,10 +273,10 @@ export default function CreatePostModal({
           ? err.message
           : 'No se pudieron seleccionar las fotos.'
       );
+      e.target.value = '';
     }
   }
 
-  // FOTO GENERAL PARA IA
   function seleccionarFotoPrendaIA(
     e: ChangeEvent<HTMLInputElement>
   ) {
@@ -216,19 +288,19 @@ export default function CreatePostModal({
       validarImagen(archivo);
 
       setFotoPrendaIA(archivo);
+      invalidarAnalisis();
       setError('');
-      setMensajeIA('');
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'No se pudo seleccionar la imagen.'
+          : 'Imagen inválida.'
       );
+      e.target.value = '';
     }
   }
 
-  // FOTO DE ETIQUETA PARA IA
-  function seleccionarEtiquetaIA(
+  function seleccionarFotoEtiquetaIA(
     e: ChangeEvent<HTMLInputElement>
   ) {
     const archivo = e.target.files?.[0];
@@ -239,59 +311,270 @@ export default function CreatePostModal({
       validarImagen(archivo);
 
       setFotoEtiquetaIA(archivo);
+      invalidarAnalisis();
       setError('');
-      setMensajeIA('');
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'No se pudo seleccionar la etiqueta.'
+          : 'Imagen inválida.'
       );
+      e.target.value = '';
     }
   }
 
-  // ANALIZAR FOTOS CON IA
-  function analizarConIA() {
+  // ANÁLISIS REAL
+  async function analizarConIA() {
+    if (ocupado) return;
+
     setError('');
     setMensajeIA('');
 
     if (!fotoPrendaIA || !fotoEtiquetaIA) {
       setError(
-        'Primero tenés que subir una foto de la prenda y otra de su etiqueta.'
+        'Subí una foto de la prenda y otra de su etiqueta.'
       );
-      return;
-    }
-
-    // PENDIENTE: CONECTAR ENDPOINT REAL DE IA
-    setMostrarDatosIA(true);
-
-    setMensajeIA(
-      'Las imágenes están listas. Falta conectar el servicio de IA para completar los datos.'
-    );
-  }
-
-  // PUBLICAR MANUALMENTE
-  async function handleSubmit(
-    e: FormEvent<HTMLFormElement>
-  ) {
-    e.preventDefault();
-
-    if (cargando || pantalla !== 'manual') return;
-
-    if (fotosManuales.length === 0) {
-      setError('Subí al menos una foto de tu prenda.');
       return;
     }
 
     const token = localStorage.getItem('token');
 
     if (!token) {
-      setError('Tenés que iniciar sesión para publicar.');
+      setError(
+        'Tenés que iniciar sesión para analizar.'
+      );
       return;
     }
 
-    setCargando(true);
+    setAnalizando(true);
+    setAnalizado(false);
+
+    try {
+      setMensajeIA('Preparando imágenes...');
+
+      let urlPrincipal = '';
+      let urlEtiqueta = '';
+
+      const guardadas = fotosSubidasRef.current;
+
+      if (
+        guardadas &&
+        guardadas.archivoPrincipal === fotoPrendaIA &&
+        guardadas.archivoEtiqueta === fotoEtiquetaIA
+      ) {
+        urlPrincipal = guardadas.principal;
+        urlEtiqueta = guardadas.etiqueta;
+      } else {
+        urlPrincipal = await subirImagen(
+          fotoPrendaIA
+        );
+
+        urlEtiqueta = await subirImagen(
+          fotoEtiquetaIA
+        );
+
+        fotosSubidasRef.current = {
+          principal: urlPrincipal,
+          etiqueta: urlEtiqueta,
+          archivoPrincipal: fotoPrendaIA,
+          archivoEtiqueta: fotoEtiquetaIA,
+        };
+      }
+
+      setMensajeIA('Analizando imágenes con IA...');
+
+      const res = await fetch(
+        `${API_URL}/analizar_prenda`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            img_main: urlPrincipal,
+            img_etiqueta: urlEtiqueta,
+          }),
+        }
+      );
+
+      const respuesta: RespuestaIA =
+        await res.json().catch(() => ({}));
+
+      if (res.status === 401) {
+        throw new Error(
+          'El servidor rechazó tu sesión. Cerrá sesión, iniciá nuevamente y repetí el análisis.'
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          respuesta.error ||
+          `Error al analizar la prenda (${res.status}).`
+        );
+      }
+
+      if (!respuesta.prenda) {
+        throw new Error(
+          'El análisis no devolvió datos.'
+        );
+      }
+
+      const resultado = respuesta.prenda;
+
+      setResultadoIA(resultado);
+
+      // COMPLETAR LOS CAMPOS QUE DEVUELVE NODE
+      setDatos((anteriores) => ({
+        ...anteriores,
+        tipoPrenda: convertirTexto(
+          resultado.categoria
+        ),
+        marca: convertirTexto(
+          resultado.marca
+        ),
+        color: convertirTexto(
+          resultado.color
+        ),
+        talle: convertirTexto(
+          resultado.talle
+        ),
+      }));
+
+      setAnalizado(true);
+      setMostrarDatosIA(true);
+
+      // Tras cada análisis, volver a bloquear.
+      setEditarManualmente(false);
+
+      setMensajeIA(
+        'Análisis completado. Revisá los datos detectados.'
+      );
+    } catch (err) {
+      console.error(
+        'Error al analizar la prenda:',
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo analizar la prenda.'
+      );
+
+      setMensajeIA('');
+    } finally {
+      setAnalizando(false);
+    }
+  }
+
+  // VALIDACIÓN
+  function validarDatos(): string | null {
+    const obligatorios: Array<
+      [keyof DatosPrenda, string]
+    > = [
+      ['titulo', 'título'],
+      ['descripcion', 'descripción'],
+      ['precio', 'precio'],
+      ['tipoPrenda', 'tipo de prenda'],
+      ['marca', 'marca'],
+      ['color', 'color'],
+      ['talle', 'talle'],
+      ['estado', 'estado'],
+      ['genero', 'género'],
+      ['stock', 'stock'],
+      [
+        'aliasTransferencia',
+        'alias de transferencia',
+      ],
+    ];
+
+    for (const [campo, nombre] of obligatorios) {
+      if (!datos[campo].trim()) {
+        if (
+          pantalla === 'ia' &&
+          [
+            'tipoPrenda',
+            'marca',
+            'color',
+            'talle',
+          ].includes(campo)
+        ) {
+          setMostrarDatosIA(true);
+
+          setEditarManualmente(true);
+        }
+
+        return `Completá el campo ${nombre}.`;
+      }
+    }
+
+    const precio = Number(datos.precio);
+    const stock = Number(datos.stock);
+
+    if (
+      !Number.isFinite(precio) ||
+      precio <= 0
+    ) {
+      return 'Ingresá un precio válido.';
+    }
+
+    if (
+      !Number.isInteger(stock) ||
+      stock < 1
+    ) {
+      return 'Ingresá un stock válido.';
+    }
+
+    return null;
+  }
+
+  // PUBLICAR
+  async function handleSubmit(
+    e: FormEvent<HTMLFormElement>
+  ) {
+    e.preventDefault();
+
+    if (ocupado || pantalla === 'seleccion') {
+      return;
+    }
+
     setError('');
+
+    if (
+      pantalla === 'manual' &&
+      fotosManuales.length === 0
+    ) {
+      setError(
+        'Subí al menos una foto de la prenda.'
+      );
+      return;
+    }
+
+    if (pantalla === 'ia' && !analizado) {
+      setError(
+        'Primero analizá las fotos con IA.'
+      );
+      return;
+    }
+
+    const errorDatos = validarDatos();
+
+    if (errorDatos) {
+      setError(errorDatos);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      setError(
+        'Tenés que iniciar sesión para publicar.'
+      );
+      return;
+    }
+
+    setPublicando(true);
 
     try {
       const resPerfil = await fetch(
@@ -305,13 +588,13 @@ export default function CreatePostModal({
 
       if (resPerfil.status === 401) {
         throw new Error(
-          'Tu sesión venció. Volvé a iniciar sesión.'
+          'Tu sesión fue rechazada. Volvé a iniciar sesión.'
         );
       }
 
       if (!resPerfil.ok) {
         throw new Error(
-          'No se pudo obtener el usuario.'
+          'No se pudo obtener tu usuario.'
         );
       }
 
@@ -323,10 +606,33 @@ export default function CreatePostModal({
         );
       }
 
-      // Por ahora el backend guarda una sola foto.
-      const urlPrincipal = await subirImagen(
-        fotosManuales[0]
-      );
+      let urlPrincipal = '';
+
+      if (pantalla === 'manual') {
+        urlPrincipal = await subirImagen(
+          fotosManuales[0]
+        );
+      } else {
+        const guardadas =
+          fotosSubidasRef.current;
+
+        if (
+          guardadas &&
+          guardadas.archivoPrincipal === fotoPrendaIA
+        ) {
+          urlPrincipal = guardadas.principal;
+        } else if (fotoPrendaIA) {
+          urlPrincipal = await subirImagen(
+            fotoPrendaIA
+          );
+        }
+      }
+
+      if (!urlPrincipal) {
+        throw new Error(
+          'No se pudo obtener la imagen principal.'
+        );
+      }
 
       await createPost(
         {
@@ -341,8 +647,10 @@ export default function CreatePostModal({
           estado: datos.estado,
           genero: datos.genero,
           stock: Number(datos.stock),
+          aliasTransferencia:
+            datos.aliasTransferencia.trim(),
         },
-        usuario.id
+        Number(usuario.id)
       );
 
       onCreated();
@@ -356,162 +664,384 @@ export default function CreatePostModal({
           : 'No se pudo crear la publicación.'
       );
     } finally {
-      setCargando(false);
+      setPublicando(false);
     }
   }
 
-  // CAMPOS DEL FORMULARIO
-  const camposBloqueados =
-    pantalla === 'ia' && !editarManualmente;
-
-  function renderCampos() {
+  // CAMPO DE TEXTO
+  function input(
+    campo: keyof DatosPrenda,
+    placeholder: string,
+    tipo = 'text',
+    bloqueado = false
+  ) {
     return (
-      <div className="flex flex-col gap-3">
+      <input
+        name={campo}
+        type={tipo}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        value={datos[campo]}
+        onChange={(e) =>
+          actualizarDato(campo, e.target.value)
+        }
+        readOnly={bloqueado}
+        disabled={ocupado}
+        min={
+          tipo === 'number'
+            ? campo === 'stock'
+              ? '1'
+              : '0.01'
+            : undefined
+        }
+        step={
+          tipo === 'number'
+            ? campo === 'stock'
+              ? '1'
+              : '0.01'
+            : undefined
+        }
+        className={
+          inputClass +
+          (bloqueado
+            ? ' bg-[#13233A] text-[#B5C6DD] cursor-default focus:border-[#294768]'
+            : '')
+        }
+      />
+    );
+  }
 
-        <input
-          name="titulo"
-          placeholder="Título"
-          value={datos.titulo}
-          onChange={(e) =>
-            actualizarDato('titulo', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          className={inputClass}
-        />
+  // CAMPOS IA: BLOQUEADOS POR DEFECTO
+  function camposIA() {
+    return (
+      <div className="flex flex-col gap-4">
 
-        <textarea
-          name="descripcion"
-          placeholder="Descripción"
-          value={datos.descripcion}
-          onChange={(e) =>
-            actualizarDato('descripcion', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          rows={3}
-          className={textareaClass}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
 
-        <input
-          name="precio"
-          type="number"
-          min="1"
-          placeholder="Precio"
-          value={datos.precio}
-          onChange={(e) =>
-            actualizarDato('precio', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          className={inputClass}
-        />
+          <div>
+            <p className="text-xs text-[#91A5BF]">
+              {analizado
+                ? 'Datos del último análisis'
+                : 'Pendientes de analizar'}
+            </p>
 
-        <input
-          name="tipoPrenda"
-          placeholder="Tipo de prenda"
-          value={datos.tipoPrenda}
-          onChange={(e) =>
-            actualizarDato('tipoPrenda', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          className={inputClass}
-        />
+            {analizado && (
+              <p className="text-xs text-[#93C5FD] mt-1">
+                {editarManualmente
+                  ? 'Edición habilitada'
+                  : 'Campos bloqueados'}
+              </p>
+            )}
+          </div>
 
-        <input
-          name="marca"
-          placeholder="Marca"
-          value={datos.marca}
-          onChange={(e) =>
-            actualizarDato('marca', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          className={inputClass}
-        />
-
-        <div className="grid grid-cols-[minmax(0,65fr)_minmax(0,35fr)] gap-2">
-
-          <input
-            name="color"
-            placeholder="Color"
-            value={datos.color}
-            onChange={(e) =>
-              actualizarDato('color', e.target.value)
+          <button
+            type="button"
+            onClick={() =>
+              setEditarManualmente(
+                !editarManualmente
+              )
             }
-            readOnly={camposBloqueados}
-            disabled={cargando}
-            required={!camposBloqueados}
-            className={inputClass}
-          />
-
-          <input
-            name="talle"
-            placeholder="Talle"
-            value={datos.talle}
-            onChange={(e) =>
-              actualizarDato('talle', e.target.value)
-            }
-            readOnly={camposBloqueados}
-            disabled={cargando}
-            required={!camposBloqueados}
-            className={inputClass}
-          />
-
+            disabled={ocupado}
+            className="text-sm text-[#93C5FD] hover:text-white cursor-pointer disabled:opacity-50"
+          >
+            {editarManualmente
+              ? 'Terminar edición'
+              : 'Editar manualmente'}
+          </button>
         </div>
 
-        <select
-          name="estado"
-          value={datos.estado}
-          onChange={(e) =>
-            actualizarDato('estado', e.target.value)
-          }
-          disabled={cargando || camposBloqueados}
-          required={!camposBloqueados}
-          className={inputClass}
-        >
-          <option value="" disabled>Estado</option>
-          <option value="Nuevo">Nuevo</option>
-          <option value="Usado">Usado</option>
-        </select>
+        <div>
+          <label className={labelClass}>
+            Tipo de prenda *
+          </label>
 
-        <select
-          name="genero"
-          value={datos.genero}
-          onChange={(e) =>
-            actualizarDato('genero', e.target.value)
-          }
-          disabled={cargando || camposBloqueados}
-          required={!camposBloqueados}
-          className={inputClass}
-        >
-          <option value="" disabled>Género</option>
-          <option value="Hombre">Hombre</option>
-          <option value="Mujer">Mujer</option>
-          <option value="Unisex">Unisex</option>
-        </select>
+          {input(
+            'tipoPrenda',
+            'Tipo de prenda',
+            'text',
+            camposIABloqueados
+          )}
+        </div>
 
-        <input
-          name="stock"
-          type="number"
-          min="1"
-          placeholder="Stock"
-          value={datos.stock}
-          onChange={(e) =>
-            actualizarDato('stock', e.target.value)
-          }
-          readOnly={camposBloqueados}
-          disabled={cargando}
-          required={!camposBloqueados}
-          className={inputClass}
-        />
+        <div>
+          <label className={labelClass}>
+            Marca *
+          </label>
 
+          {input(
+            'marca',
+            'Marca',
+            'text',
+            camposIABloqueados
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <label className={labelClass}>
+              Color *
+            </label>
+
+            {input(
+              'color',
+              'Color',
+              'text',
+              camposIABloqueados
+            )}
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Talle *
+            </label>
+
+            {input(
+              'talle',
+              'Talle',
+              'text',
+              camposIABloqueados
+            )}
+          </div>
+        </div>
+
+        {resultadoIA?.subcategoria && (
+          <div className="bg-[#102039] border border-[#294768] rounded-lg p-3">
+
+            <p className="text-xs text-[#91A5BF]">
+              Subcategoría detectada
+            </p>
+
+            <p className="text-sm text-white mt-1">
+              {resultadoIA.subcategoria}
+            </p>
+          </div>
+        )}
+
+        {resultadoIA?.detalles && (
+          <div className="bg-[#102039] border border-[#294768] rounded-lg p-3">
+
+            <p className="text-xs text-[#91A5BF]">
+              Detalles detectados
+            </p>
+
+            <p className="text-sm text-white mt-2 whitespace-pre-wrap">
+              {resultadoIA.detalles}
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                actualizarDato(
+                  'descripcion',
+                  resultadoIA.detalles ?? ''
+                )
+              }
+              disabled={ocupado}
+              className="text-xs text-[#93C5FD] hover:text-white mt-3 cursor-pointer disabled:opacity-50"
+            >
+              Usar como descripción
+            </button>
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  // CAMPOS MANUALES SIEMPRE VISIBLES
+  function camposManuales(
+    soloPendientesIA = false
+  ) {
+    return (
+      <div className="flex flex-col gap-4">
+
+        {soloPendientesIA && (
+          <div className="border-t border-[#294768] pt-5">
+            <h3 className="text-base font-semibold text-white">
+              Datos de la publicación
+            </h3>
+
+            <p className="text-xs text-[#91A5BF] mt-2">
+              Completá estos datos manualmente.
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label className={labelClass}>
+            Título *
+          </label>
+
+          {input('titulo', 'Título')}
+        </div>
+
+        <div>
+          <label className={labelClass}>
+            Descripción *
+          </label>
+
+          <textarea
+            name="descripcion"
+            placeholder="Descripción"
+            value={datos.descripcion}
+            onChange={(e) =>
+              actualizarDato(
+                'descripcion',
+                e.target.value
+              )
+            }
+            disabled={ocupado}
+            rows={3}
+            className={textareaClass}
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>
+            Precio *
+          </label>
+
+          {input('precio', 'Precio', 'number')}
+        </div>
+
+        {!soloPendientesIA && (
+          <>
+            <div>
+              <label className={labelClass}>
+                Tipo de prenda *
+              </label>
+
+              {input(
+                'tipoPrenda',
+                'Tipo de prenda'
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Marca *
+              </label>
+
+              {input('marca', 'Marca')}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>
+                  Color *
+                </label>
+                {input('color', 'Color')}
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Talle *
+                </label>
+                {input('talle', 'Talle')}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <label className={labelClass}>
+              Estado *
+            </label>
+
+            <select
+              name="estado"
+              value={datos.estado}
+              onChange={(e) =>
+                actualizarDato(
+                  'estado',
+                  e.target.value
+                )
+              }
+              disabled={ocupado}
+              className={inputClass}
+            >
+              <option value="" disabled>
+                Seleccionar
+              </option>
+              <option value="Nuevo">
+                Nuevo
+              </option>
+              <option value="Usado">
+                Usado
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Género *
+            </label>
+
+            <select
+              name="genero"
+              value={datos.genero}
+              onChange={(e) =>
+                actualizarDato(
+                  'genero',
+                  e.target.value
+                )
+              }
+              disabled={ocupado}
+              className={inputClass}
+            >
+              <option value="" disabled>
+                Seleccionar
+              </option>
+              <option value="Hombre">
+                Hombre
+              </option>
+              <option value="Mujer">
+                Mujer
+              </option>
+              <option value="Unisex">
+                Unisex
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>
+            Stock *
+          </label>
+
+          {input('stock', 'Stock', 'number')}
+        </div>
+
+        <div className="border-t border-[#294768] pt-5 mt-2">
+
+          <h3 className="text-base font-semibold text-white">
+            Datos para recibir pagos
+          </h3>
+
+          <p className="text-xs text-[#91A5BF] mt-2 mb-4 leading-relaxed">
+            Ingresá el alias de la cuenta donde
+            querés recibir las transferencias.
+            El comprador podrá verlo cuando
+            el vendedor acepte su solicitud.
+          </p>
+
+          <label className={labelClass}>
+            Alias de transferencia *
+          </label>
+
+          {input(
+            'aliasTransferencia',
+            'Ej: mi.alias.mp'
+          )}
+
+          <p className="text-xs text-[#91A5BF] mt-2">
+            Revisá que el alias esté bien escrito.
+          </p>
+        </div>
       </div>
     );
   }
@@ -527,360 +1057,233 @@ export default function CreatePostModal({
           'relative w-full bg-[#0E1D32] border border-[#294768] rounded-2xl overflow-hidden shadow-2xl ' +
           (pantalla === 'seleccion'
             ? 'max-w-2xl'
-            : 'max-w-4xl max-h-[90dvh]')
+            : 'max-w-5xl max-h-[90dvh]')
         }
       >
 
-        {/* BOTÓN CERRAR */}
+        {/* CERRAR */}
         <button
           type="button"
           onClick={onClose}
-          disabled={cargando}
+          disabled={ocupado}
           className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-[#172A45] hover:bg-[#294768] text-white flex items-center justify-center cursor-pointer disabled:opacity-50"
           aria-label="Cerrar"
         >
           ✕
         </button>
 
-        {/* ================================== */}
-        {/* PANTALLA INICIAL: ELEGIR MODO       */}
-        {/* ================================== */}
-
+        {/* SELECCIÓN DE MODO */}
         {pantalla === 'seleccion' && (
-
           <div className="p-6 sm:p-9 flex flex-col gap-5 max-h-[90dvh] overflow-y-auto">
 
-            <div className="mb-2 pr-10">
+            <h2 className="text-2xl font-bold text-white pr-10">
+              ¿Cómo querés publicar tu prenda?
+            </h2>
 
-              <h2 className="text-2xl font-bold text-white">
-                ¿Cómo querés publicar tu prenda?
-              </h2>
+            <button
+              type="button"
+              onClick={() =>
+                cambiarPantalla('ia')
+              }
+              className="w-full text-left bg-[#152B49] border border-[#3A5C84] rounded-xl p-6 hover:bg-[#1B3658] transition-colors cursor-pointer"
+            >
+              <h3 className="text-lg font-semibold text-white">
+                Escaneo automático con IA
+              </h3>
 
-              <p className="text-sm text-[#A9BAD0] mt-2">
-                Elegí la forma que prefieras para crear tu publicación.
+              <p className="text-sm text-[#A9BAD0] mt-3">
+                Subí una foto de la prenda y otra
+                de su etiqueta para identificar
+                tipo, marca, color y talle.
               </p>
 
-            </div>
-
-            {/* OPCIÓN IA */}
-            <button
-              type="button"
-              onClick={() => cambiarPantalla('ia')}
-              className="w-full text-left bg-[#152B49] border border-[#3A5C84] rounded-xl p-6 hover:bg-[#1B3658] hover:border-[#6196DC] transition-colors cursor-pointer"
-            >
-
-              <div className="flex items-start gap-4">
-
-                <div className="w-14 h-14 shrink-0 rounded-xl bg-[#24466F] flex items-center justify-center">
-
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-8 h-8 text-[#A8CAFF]"
-                  >
-                    <path d="M4 9V5a1 1 0 0 1 1-1h4" />
-                    <path d="M15 4h4a1 1 0 0 1 1 1v4" />
-                    <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
-                    <path d="M9 20H5a1 1 0 0 1-1-1v-4" />
-                    <path d="M7 12h10" />
-                    <path d="M12 7v10" />
-                  </svg>
-
-                </div>
-
-                <div className="flex-1 min-w-0">
-
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">
-                    Escaneo automático con IA
-                  </h3>
-
-                  <p className="mt-2 text-sm text-[#B0C2DA] leading-relaxed">
-                    Subí una foto de tu prenda y otra de la etiqueta.
-                    La inteligencia artificial analizará las imágenes
-                    para completar los datos automáticamente.
-                  </p>
-
-                  <div className="mt-5 bg-[#2563EB] rounded-lg py-3 px-4 text-center text-white font-medium">
-                    Continuar con IA
-                  </div>
-
-                </div>
-
+              <div className="mt-5 bg-[#2563EB] rounded-lg py-3 text-center font-medium text-white">
+                Continuar con IA
               </div>
-
             </button>
 
-            {/* OPCIÓN MANUAL */}
             <button
               type="button"
-              onClick={() => cambiarPantalla('manual')}
-              className="w-full text-left bg-[#102039] border border-[#294768] rounded-xl p-6 hover:bg-[#192D48] hover:border-[#5479A8] transition-colors cursor-pointer"
+              onClick={() =>
+                cambiarPantalla('manual')
+              }
+              className="w-full text-left bg-[#102039] border border-[#294768] rounded-xl p-6 hover:bg-[#192D48] transition-colors cursor-pointer"
             >
+              <h3 className="text-lg font-semibold text-white">
+                Crear mi publicación manualmente
+              </h3>
 
-              <div className="flex items-start gap-4">
+              <p className="text-sm text-[#A9BAD0] mt-3">
+                Subí las fotos y completá vos
+                mismo los datos de la publicación.
+              </p>
 
-                <div className="w-14 h-14 shrink-0 rounded-xl bg-[#1C3452] flex items-center justify-center">
-
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-8 h-8 text-[#B0C2DA]"
-                  >
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4Z" />
-                  </svg>
-
-                </div>
-
-                <div className="flex-1 min-w-0">
-
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">
-                    Crear mi publicación manualmente
-                  </h3>
-
-                  <p className="mt-2 text-sm text-[#B0C2DA] leading-relaxed">
-                    Subí una o más fotos de tu prenda y completá
-                    vos mismo los datos de la publicación.
-                  </p>
-
-                  <div className="mt-5 border border-[#42648D] bg-[#1A3455] rounded-lg py-3 px-4 text-center text-white font-medium">
-                    Continuar manualmente
-                  </div>
-
-                </div>
-
+              <div className="mt-5 bg-[#1A3455] border border-[#42648D] rounded-lg py-3 text-center font-medium text-white">
+                Continuar manualmente
               </div>
-
             </button>
-
           </div>
-
         )}
 
-        {/* ================================== */}
-        {/* FORMULARIO MANUAL O IA             */}
-        {/* ================================== */}
-
+        {/* FORMULARIO */}
         {pantalla !== 'seleccion' && (
-
           <form
             onSubmit={handleSubmit}
+            noValidate
             className="flex flex-col md:flex-row max-h-[90dvh] overflow-y-auto md:overflow-hidden"
           >
 
             {/* COLUMNA IZQUIERDA */}
             <div className="w-full md:w-1/2 md:shrink-0 bg-[#102039] border-b md:border-b-0 md:border-r border-[#294768] flex flex-col p-5 gap-4 md:max-h-[90dvh] md:overflow-y-auto">
 
-              {/* VOLVER A SELECCIÓN */}
               <button
                 type="button"
-                onClick={() => cambiarPantalla('seleccion')}
-                disabled={cargando}
+                onClick={() =>
+                  cambiarPantalla('seleccion')
+                }
+                disabled={ocupado}
                 className="self-start flex items-center gap-2 text-sm text-[#A9C4E9] hover:text-white cursor-pointer disabled:opacity-50"
               >
-                <span aria-hidden="true">←</span>
-                Volver
+                ← Volver
               </button>
 
               {pantalla === 'manual' ? (
-
                 <>
-                  {/* FOTO MANUAL */}
-                  <div className="flex-1 flex flex-col min-h-0">
+                  <h3 className="text-lg font-semibold text-white">
+                    Fotos de la prenda
+                  </h3>
 
-                    <label className="flex-1 min-h-56 md:min-h-80 bg-[#152943] rounded-lg border border-dashed border-[#45617F] cursor-pointer flex flex-col items-center justify-center text-center p-5 hover:border-blue-400 transition-colors">
+                  <label className="min-h-56 md:min-h-80 bg-[#152943] rounded-lg border border-dashed border-[#45617F] cursor-pointer flex flex-col items-center justify-center text-center p-5 hover:border-blue-400">
 
-                      {previewsManuales.length > 0 ? (
-
-                        <div className="w-full flex flex-col gap-3">
-
-                          <div className="grid grid-cols-2 gap-2">
-
-                            {previewsManuales.map((url, index) => (
-
-                              <img
-                                key={url}
-                                src={url}
-                                alt={`Foto ${index + 1}`}
-                                className="w-full h-32 object-contain bg-[#0B192D] rounded"
-                              />
-
-                            ))}
-
-                          </div>
-
-                          <span className="text-sm text-[#A9BAD0]">
-                            {fotosManuales.length} foto(s) seleccionada(s).
-                            Tocá para cambiar.
-                          </span>
-
-                        </div>
-
-                      ) : (
-
-                        <div className="flex flex-col items-center gap-4">
-
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-12 h-12 text-[#91A5BF]"
-                          >
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <path d="m21 15-5-5L5 21" />
-                          </svg>
-
-                          <span className="text-[#B7C7DD] text-base">
-                            Hacé clic aquí para subir una o más fotos de tu prenda
-                          </span>
-
-                        </div>
-
-                      )}
-
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={seleccionarFotosManuales}
-                        disabled={cargando}
-                        className="hidden"
-                      />
-
-                    </label>
-
-                    {fotosManuales.length > 1 && (
-                      <p className="mt-3 text-xs text-[#9AAEC8]">
-                        Por ahora solo se guardará la primera foto.
-                        Las fotos adicionales se habilitarán cuando
-                        el backend permita guardar varias imágenes.
+                    {previewsManuales.length > 0 ? (
+                      <div className="w-full grid grid-cols-2 gap-2">
+                        {previewsManuales.map(
+                          (url, index) => (
+                            <img
+                              key={url}
+                              src={url}
+                              alt={`Foto ${index + 1}`}
+                              className="w-full h-32 object-contain bg-[#0B192D] rounded"
+                            />
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[#B7C7DD]">
+                        Subir fotos de la prenda
                       </p>
                     )}
 
-                  </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={
+                        seleccionarFotosManuales
+                      }
+                      disabled={ocupado}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {fotosManuales.length > 1 && (
+                    <p className="text-xs text-[#91A5BF]">
+                      Por ahora solo se guarda
+                      la primera foto.
+                    </p>
+                  )}
                 </>
-
               ) : (
-
                 <>
-                  {/* MODO IA */}
                   <h3 className="text-lg font-semibold text-white">
                     Escaneo automático con IA
                   </h3>
 
                   <p className="text-sm text-[#A9BAD0]">
-                    Subí una foto de la prenda completa y otra de su etiqueta.
+                    Subí una foto de la prenda completa
+                    y otra de su etiqueta.
                   </p>
 
-                  {/* FOTO GENERAL */}
-                  <div className="flex flex-col gap-2">
-
-                    <span className="text-sm text-[#C0CDE0]">
+                  {/* FOTO PRENDA */}
+                  <div>
+                    <p className="text-sm text-[#C0CDE0] mb-2">
                       1. Foto de la prenda *
-                    </span>
+                    </p>
 
-                    <label className="h-44 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-400">
+                    <label className="h-44 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden">
 
                       {previewPrendaIA ? (
-
                         <img
                           src={previewPrendaIA}
                           alt="Foto de la prenda"
                           className="w-full h-full object-contain"
                         />
-
                       ) : (
-
-                        <div className="text-center p-4">
-
-                          <p className="text-[#B7C7DD]">
-                            Subir foto de la prenda
-                          </p>
-
-                          <p className="text-[#91A5BF] text-xs mt-2">
-                            Vista completa desde arriba
-                          </p>
-
-                        </div>
-
+                        <p className="text-[#A9BAD0]">
+                          Subir foto de la prenda
+                        </p>
                       )}
 
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        onChange={seleccionarFotoPrendaIA}
-                        disabled={cargando}
+                        onChange={
+                          seleccionarFotoPrendaIA
+                        }
+                        disabled={ocupado}
                         className="hidden"
                       />
-
                     </label>
-
                   </div>
 
-                  {/* FOTO DE ETIQUETA */}
-                  <div className="flex flex-col gap-2">
-
-                    <span className="text-sm text-[#C0CDE0]">
+                  {/* FOTO ETIQUETA */}
+                  <div>
+                    <p className="text-sm text-[#C0CDE0] mb-2">
                       2. Foto de la etiqueta *
-                    </span>
+                    </p>
 
-                    <label className="h-40 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-400">
+                    <label className="h-40 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden">
 
                       {previewEtiquetaIA ? (
-
                         <img
                           src={previewEtiquetaIA}
                           alt="Foto de la etiqueta"
                           className="w-full h-full object-contain"
                         />
-
                       ) : (
-
-                        <div className="text-center p-4">
-
-                          <p className="text-[#B7C7DD]">
-                            Subir foto de la etiqueta
-                          </p>
-
-                          <p className="text-[#91A5BF] text-xs mt-2">
-                            Que se vean marca y talle
-                          </p>
-
-                        </div>
-
+                        <p className="text-[#A9BAD0]">
+                          Subir foto de la etiqueta
+                        </p>
                       )}
 
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        onChange={seleccionarEtiquetaIA}
-                        disabled={cargando}
+                        onChange={
+                          seleccionarFotoEtiquetaIA
+                        }
+                        disabled={ocupado}
                         className="hidden"
                       />
-
                     </label>
-
                   </div>
 
+                  {/* ANALIZAR */}
                   <button
                     type="button"
                     onClick={analizarConIA}
-                    disabled={cargando}
+                    disabled={
+                      ocupado ||
+                      !fotoPrendaIA ||
+                      !fotoEtiquetaIA
+                    }
                     className="mt-auto w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg py-3 font-medium cursor-pointer disabled:opacity-50"
                   >
-                    Analizar fotos con IA
+                    {analizando
+                      ? 'Analizando imágenes...'
+                      : analizado
+                        ? 'Volver a analizar'
+                        : 'Analizar fotos con IA'}
                   </button>
 
                   {mensajeIA && (
@@ -891,55 +1294,29 @@ export default function CreatePostModal({
                       {mensajeIA}
                     </p>
                   )}
-
                 </>
-
               )}
-
             </div>
 
             {/* COLUMNA DERECHA */}
-            <div className="w-full md:w-1/2 min-w-0 p-5 sm:p-6 flex flex-col gap-3 md:max-h-[90dvh] md:overflow-y-auto">
+            <div className="w-full md:w-1/2 min-w-0 p-5 sm:p-6 flex flex-col gap-4 md:max-h-[90dvh] md:overflow-y-auto">
 
               <h2 className="font-display font-bold text-xl text-white mb-2 pr-10">
                 Publicar prenda
               </h2>
 
-              {pantalla === 'manual' ? (
-
+              {pantalla === 'ia' ? (
                 <>
-                  {/* FORMULARIO MANUAL */}
-                  {renderCampos()}
-
-                  {error && (
-                    <p role="alert" className="text-red-400 text-sm">
-                      {error}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={cargando}
-                    className="mt-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg py-3 font-medium cursor-pointer disabled:opacity-50"
-                  >
-                    {cargando ? 'Publicando...' : 'Publicar'}
-                  </button>
-
-                </>
-
-              ) : (
-
-                <>
-                  {/* PANEL DESPLEGABLE */}
                   <button
                     type="button"
                     onClick={() =>
-                      setMostrarDatosIA(!mostrarDatosIA)
+                      setMostrarDatosIA(
+                        !mostrarDatosIA
+                      )
                     }
                     aria-expanded={mostrarDatosIA}
                     className="w-full flex items-center justify-between text-left bg-[#152943] border border-[#294768] rounded-lg px-4 py-4 text-white font-medium cursor-pointer hover:bg-[#1B3454]"
                   >
-
                     <span>
                       Mostrar datos autocompletados
                     </span>
@@ -951,84 +1328,61 @@ export default function CreatePostModal({
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className={
-                        'w-5 h-5 transition-transform ' +
-                        (mostrarDatosIA ? 'rotate-180' : '')
-                      }
+                      className={`w-5 h-5 transition-transform ${
+                        mostrarDatosIA
+                          ? 'rotate-180'
+                          : ''
+                      }`}
                     >
                       <path d="m6 9 6 6 6-6" />
                     </svg>
-
                   </button>
 
                   {mostrarDatosIA && (
-
-                    <div className="flex flex-col gap-4">
-
-                      <div className="flex items-center justify-between gap-3">
-
-                        <p className="text-sm text-[#A9BAD0]">
-                          {editarManualmente
-                            ? 'Edición manual habilitada'
-                            : 'Datos pendientes del análisis'}
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditarManualmente(!editarManualmente)
-                          }
-                          className="text-sm text-[#8CB8F7] hover:text-white cursor-pointer"
-                        >
-                          {editarManualmente
-                            ? 'Bloquear campos'
-                            : 'Editar manualmente'}
-                        </button>
-
-                      </div>
-
-                      {renderCampos()}
-
-                      <p className="text-xs text-[#91A5BF]">
-                        Los campos se completarán automáticamente
-                        cuando esté conectado el servicio de IA.
-                      </p>
-
+                    <div className="bg-[#102039] border border-[#294768] rounded-lg p-4">
+                      {camposIA()}
                     </div>
-
                   )}
 
-                  {error && (
-                    <p role="alert" className="text-red-400 text-sm">
-                      {error}
-                    </p>
-                  )}
-
-                  <button
-                    type="button"
-                    disabled
-                    className="mt-auto w-full bg-[#2563EB] text-white rounded-lg py-3 font-medium opacity-50 cursor-not-allowed"
-                  >
-                    Publicar
-                  </button>
-
-                  <p className="text-xs text-center text-[#91A5BF]">
-                    La publicación por IA estará disponible
-                    cuando se conecte el servicio de análisis.
-                  </p>
-
+                  {/* FUERA DEL DESPLEGABLE */}
+                  {camposManuales(true)}
                 </>
-
+              ) : (
+                camposManuales(false)
               )}
 
+              {error && (
+                <p
+                  role="alert"
+                  className="text-sm text-red-400 leading-relaxed"
+                >
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={
+                  ocupado ||
+                  (pantalla === 'ia' && !analizado)
+                }
+                className="mt-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg py-3 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {publicando
+                  ? 'Publicando...'
+                  : 'Publicar'}
+              </button>
+
+              {pantalla === 'ia' && !analizado && (
+                <p className="text-xs text-center text-[#91A5BF]">
+                  Primero analizá las fotografías
+                  con IA.
+                </p>
+              )}
             </div>
-
           </form>
-
         )}
-
       </div>
-
     </div>
   );
 }

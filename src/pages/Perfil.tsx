@@ -26,6 +26,11 @@ interface Usuario {
   numero_telefono: string;
 }
 
+interface RespuestaCambioContrasena {
+  error?: string;
+  mensaje?: string;
+}
+
 const inputClass =
   'w-full rounded-lg bg-[#0b1426] border border-[#304767] px-4 py-3 outline-none focus:border-blue-500 text-white';
 
@@ -48,7 +53,30 @@ export default function Perfil() {
   const [instagram, setInstagram] = useState('');
 
   const [archivo, setArchivo] = useState<File | null>(null);
-  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
+  const [vistaPrevia, setVistaPrevia] =
+    useState<string | null>(null);
+
+  // CAMBIO DE CONTRASEÑA
+  const [mostrarCambioContrasena, setMostrarCambioContrasena] =
+    useState(false);
+
+  const [contrasenaActual, setContrasenaActual] =
+    useState('');
+
+  const [contrasenaNueva, setContrasenaNueva] =
+    useState('');
+
+  const [confirmarContrasena, setConfirmarContrasena] =
+    useState('');
+
+  const [mostrarContrasenas, setMostrarContrasenas] =
+    useState(false);
+
+  const [cambiandoContrasena, setCambiandoContrasena] =
+    useState(false);
+
+  const [errorContrasena, setErrorContrasena] =
+    useState('');
 
   // CERRAR SESIÓN
   function cerrarSesion() {
@@ -72,11 +100,14 @@ export default function Perfil() {
       }
 
       try {
-        const respuesta = await fetch(`${API_URL}/mi_perfil`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const respuesta = await fetch(
+          `${API_URL}/mi_perfil`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (respuesta.status === 401) {
           localStorage.removeItem('token');
@@ -111,7 +142,7 @@ export default function Perfil() {
       }
     }
 
-    cargar();
+    void cargar();
 
     return () => {
       activo = false;
@@ -131,6 +162,36 @@ export default function Perfil() {
     return () => URL.revokeObjectURL(url);
   }, [archivo]);
 
+  // CERRAR POPUP CON ESCAPE
+  useEffect(() => {
+    if (!mostrarCambioContrasena || cambiandoContrasena) {
+      return;
+    }
+
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') {
+        setMostrarCambioContrasena(false);
+        setContrasenaActual('');
+        setContrasenaNueva('');
+        setConfirmarContrasena('');
+        setErrorContrasena('');
+        setMostrarContrasenas(false);
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      cerrarConEscape
+    );
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        cerrarConEscape
+      );
+    };
+  }, [mostrarCambioContrasena, cambiandoContrasena]);
+
   // SELECCIONAR FOTO
   function seleccionarFoto(
     evento: ChangeEvent<HTMLInputElement>
@@ -146,7 +207,9 @@ export default function Perfil() {
     ];
 
     if (!tiposPermitidos.includes(foto.type)) {
-      setError('Solo se permiten imágenes JPG, PNG o WebP.');
+      setError(
+        'Solo se permiten imágenes JPG, PNG o WebP.'
+      );
       return;
     }
 
@@ -165,7 +228,7 @@ export default function Perfil() {
     setArchivo(foto);
   }
 
-  // CANCELAR CAMBIOS
+  // CANCELAR CAMBIOS DEL PERFIL
   function cancelar() {
     if (!usuario) return;
 
@@ -182,7 +245,7 @@ export default function Perfil() {
     setExito('');
   }
 
-  // GUARDAR CAMBIOS
+  // GUARDAR CAMBIOS DEL PERFIL
   async function guardar(
     evento: FormEvent<HTMLFormElement>
   ) {
@@ -211,12 +274,10 @@ export default function Perfil() {
     try {
       let fotoUrl = usuario.foto_perfil ?? '';
 
-      // SUBIR FOTO A SUPABASE
       if (archivo) {
         fotoUrl = await subirImagen(archivo);
       }
 
-      // ENVIAR DATOS AL BACKEND
       const respuesta = await fetch(
         `${API_URL}/usuario/${usuario.id}`,
         {
@@ -229,7 +290,9 @@ export default function Perfil() {
             nombre_usuario: nombreUsuario.trim(),
             numero_telefono: telefono.trim(),
             instagram: instagram.trim(),
-            ...(archivo ? { foto_perfil: fotoUrl } : {}),
+            ...(archivo
+              ? { foto_perfil: fotoUrl }
+              : {}),
           }),
         }
       );
@@ -277,6 +340,141 @@ export default function Perfil() {
     }
   }
 
+  // ABRIR CAMBIO DE CONTRASEÑA
+  function abrirCambioContrasena() {
+    setContrasenaActual('');
+    setContrasenaNueva('');
+    setConfirmarContrasena('');
+    setMostrarContrasenas(false);
+    setErrorContrasena('');
+    setExito('');
+
+    setMostrarCambioContrasena(true);
+  }
+
+  // CERRAR CAMBIO DE CONTRASEÑA
+  function cerrarCambioContrasena() {
+    if (cambiandoContrasena) return;
+
+    setMostrarCambioContrasena(false);
+    setContrasenaActual('');
+    setContrasenaNueva('');
+    setConfirmarContrasena('');
+    setMostrarContrasenas(false);
+    setErrorContrasena('');
+  }
+
+  // ENVIAR NUEVA CONTRASEÑA AL BACKEND
+  async function cambiarContrasena(
+    evento: FormEvent<HTMLFormElement>
+  ) {
+    evento.preventDefault();
+
+    if (cambiandoContrasena) return;
+
+    setErrorContrasena('');
+
+    if (
+      !contrasenaActual ||
+      !contrasenaNueva ||
+      !confirmarContrasena
+    ) {
+      setErrorContrasena(
+        'Completá todos los campos.'
+      );
+      return;
+    }
+
+    if (contrasenaNueva.length < 8) {
+      setErrorContrasena(
+        'La nueva contraseña debe tener al menos 8 caracteres.'
+      );
+      return;
+    }
+
+    if (
+      new TextEncoder().encode(contrasenaNueva).length > 72
+    ) {
+      setErrorContrasena(
+        'La nueva contraseña es demasiado larga.'
+      );
+      return;
+    }
+
+    if (contrasenaActual === contrasenaNueva) {
+      setErrorContrasena(
+        'La nueva contraseña debe ser diferente de la actual.'
+      );
+      return;
+    }
+
+    if (contrasenaNueva !== confirmarContrasena) {
+      setErrorContrasena(
+        'Las contraseñas nuevas no coinciden.'
+      );
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      cerrarSesion();
+      return;
+    }
+
+    setCambiandoContrasena(true);
+
+    try {
+      const respuesta = await fetch(
+        `${API_URL}/cambiar_contrasena`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            contrasena_actual: contrasenaActual,
+            contrasena_nueva: contrasenaNueva,
+          }),
+        }
+      );
+
+      const datos: RespuestaCambioContrasena =
+        await respuesta.json().catch(() => ({}));
+
+      if (respuesta.status === 401) {
+        cerrarSesion();
+        return;
+      }
+
+      if (!respuesta.ok) {
+        throw new Error(
+          datos.error ||
+            'No se pudo cambiar la contraseña.'
+        );
+      }
+
+      setMostrarCambioContrasena(false);
+      setContrasenaActual('');
+      setContrasenaNueva('');
+      setConfirmarContrasena('');
+      setMostrarContrasenas(false);
+      setErrorContrasena('');
+
+      setError('');
+      setExito('Contraseña actualizada correctamente.');
+    } catch (e) {
+      setErrorContrasena(
+        e instanceof Error
+          ? e.message
+          : 'Error al actualizar la contraseña.'
+      );
+    } finally {
+      setCambiandoContrasena(false);
+    }
+  }
+
   // FORMATEAR FECHA DE NACIMIENTO
   function formatearFecha(fecha: string | null) {
     if (!fecha) return 'No disponible';
@@ -291,7 +489,6 @@ export default function Perfil() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#ecf2ff] flex flex-col">
-
       {/* HEADER */}
       <Header
         actions={
@@ -303,7 +500,6 @@ export default function Perfil() {
       />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-5 sm:px-8 py-10">
-
         <h1 className="text-3xl font-bold mb-9">
           Mi perfil
         </h1>
@@ -315,20 +511,15 @@ export default function Perfil() {
             {error || 'No se encontró el perfil.'}
           </p>
         ) : (
-
           <form
             onSubmit={guardar}
             className="rounded-2xl border border-[#294261] bg-[#142138] p-6 sm:p-10 shadow-xl"
           >
-
             <div className="grid grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)] gap-8 md:gap-12">
-
               {/* COLUMNA IZQUIERDA */}
               <section className="flex flex-col items-center text-center md:border-r md:border-[#294261] md:pr-10">
-
                 {/* FOTO DE PERFIL */}
                 <div className="w-36 h-36 rounded-full overflow-hidden bg-[#263955] border border-[#3a506e] flex items-center justify-center">
-
                   {vistaPrevia || usuario.foto_perfil ? (
                     <img
                       src={
@@ -344,7 +535,6 @@ export default function Perfil() {
                       {usuario.nombre?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   )}
-
                 </div>
 
                 {/* INPUT DE FOTO */}
@@ -365,7 +555,6 @@ export default function Perfil() {
                   Cambiar foto
                 </button>
 
-                {/* NOMBRE DE USUARIO */}
                 <h2 className="font-semibold text-lg mt-7 break-all">
                   {usuario.nombre_usuario}
                 </h2>
@@ -373,18 +562,15 @@ export default function Perfil() {
                 <p className="text-slate-400 text-sm mt-1">
                   {usuario.nombre} {usuario.apellido}
                 </p>
-
               </section>
 
               {/* COLUMNA DERECHA */}
               <section className="min-w-0 flex flex-col">
-
                 <h2 className="text-xl font-bold mb-8">
                   Información de la cuenta
                 </h2>
 
                 <div className="space-y-5">
-
                   {/* NOMBRE DE USUARIO */}
                   <div>
                     <label
@@ -442,7 +628,9 @@ export default function Perfil() {
 
                     <input
                       type="text"
-                      value={formatearFecha(usuario.fecha_nacimiento)}
+                      value={formatearFecha(
+                        usuario.fecha_nacimiento
+                      )}
                       readOnly
                       className={inputDeshabilitado}
                     />
@@ -509,20 +697,23 @@ export default function Perfil() {
                       Contraseña
                     </label>
 
-                    <div className="flex items-center justify-between rounded-lg bg-[#0b1426]/70 border border-[#304767] px-4 py-3 text-sm">
-
-                      <span>••••••••••••</span>
-
-                      <span className="text-slate-400">
-                        Cambio aún no disponible
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#0b1426]/70 border border-[#304767] px-4 py-3 text-sm">
+                      <span className="text-[#D5E3F4] tracking-wider">
+                        ••••••••••••
                       </span>
 
+                      <button
+                        type="button"
+                        onClick={abrirCambioContrasena}
+                        className="text-[#93C5FD] hover:text-white font-medium transition-colors cursor-pointer"
+                      >
+                        Cambiar contraseña
+                      </button>
                     </div>
                   </div>
-
                 </div>
 
-                {/* MENSAJE DE ERROR */}
+                {/* ERROR DE PERFIL */}
                 {error && (
                   <p
                     role="alert"
@@ -532,7 +723,7 @@ export default function Perfil() {
                   </p>
                 )}
 
-                {/* MENSAJE DE ÉXITO */}
+                {/* ÉXITO */}
                 {exito && (
                   <p
                     role="status"
@@ -544,8 +735,6 @@ export default function Perfil() {
 
                 {/* BOTONES */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mt-10">
-
-                  {/* CERRAR SESIÓN */}
                   <button
                     type="button"
                     onClick={cerrarSesion}
@@ -555,8 +744,6 @@ export default function Perfil() {
                   </button>
 
                   <div className="flex flex-wrap gap-3">
-
-                    {/* CANCELAR */}
                     <button
                       type="button"
                       onClick={cancelar}
@@ -566,7 +753,6 @@ export default function Perfil() {
                       Cancelar
                     </button>
 
-                    {/* GUARDAR CAMBIOS */}
                     <button
                       type="submit"
                       disabled={guardando}
@@ -576,22 +762,219 @@ export default function Perfil() {
                         ? 'Guardando...'
                         : 'Guardar cambios'}
                     </button>
-
                   </div>
-
                 </div>
-
               </section>
-
             </div>
-
           </form>
         )}
-
       </main>
 
       <Footer />
 
+      {/* POPUP CAMBIAR CONTRASEÑA */}
+      {mostrarCambioContrasena && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) {
+              cerrarCambioContrasena();
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-cambiar-contrasena"
+            className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-[#36577A] bg-[#14243B] shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 px-6 pt-6">
+              <div className="w-12 h-12 rounded-xl bg-[#213B5D] flex items-center justify-center text-[#93C5FD]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-7 h-7"
+                >
+                  <rect
+                    x="5"
+                    y="10"
+                    width="14"
+                    height="11"
+                    rx="2"
+                  />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+              </div>
+
+              <button
+                type="button"
+                onClick={cerrarCambioContrasena}
+                disabled={cambiandoContrasena}
+                aria-label="Cerrar"
+                className="text-[#A9BAD0] hover:text-white text-xl cursor-pointer disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-6 pt-5 pb-6">
+              <h2
+                id="titulo-cambiar-contrasena"
+                className="text-xl font-bold text-white"
+              >
+                Cambiar contraseña
+              </h2>
+
+              <p className="text-sm text-[#A9BAD0] mt-2 leading-relaxed">
+                Ingresá tu contraseña actual y elegí
+                una nueva para proteger tu cuenta.
+              </p>
+
+              {/* FORMULARIO INDEPENDIENTE */}
+              <form
+                onSubmit={cambiarContrasena}
+                className="mt-6 space-y-4"
+              >
+                {/* ACTUAL */}
+                <div>
+                  <label
+                    htmlFor="contrasena-actual"
+                    className="block text-sm font-medium text-[#D5E3F4] mb-2"
+                  >
+                    Contraseña actual
+                  </label>
+
+                  <input
+                    id="contrasena-actual"
+                    type={
+                      mostrarContrasenas
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={contrasenaActual}
+                    onChange={(e) =>
+                      setContrasenaActual(e.target.value)
+                    }
+                    autoComplete="current-password"
+                    required
+                    disabled={cambiandoContrasena}
+                    className={inputClass}
+                  />
+                </div>
+
+                {/* NUEVA */}
+                <div>
+                  <label
+                    htmlFor="contrasena-nueva"
+                    className="block text-sm font-medium text-[#D5E3F4] mb-2"
+                  >
+                    Nueva contraseña
+                  </label>
+
+                  <input
+                    id="contrasena-nueva"
+                    type={
+                      mostrarContrasenas
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={contrasenaNueva}
+                    onChange={(e) =>
+                      setContrasenaNueva(e.target.value)
+                    }
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    disabled={cambiandoContrasena}
+                    className={inputClass}
+                  />
+
+                  <p className="mt-2 text-xs text-[#91A5BF]">
+                    Debe tener al menos 8 caracteres.
+                  </p>
+                </div>
+
+                {/* CONFIRMACIÓN */}
+                <div>
+                  <label
+                    htmlFor="confirmar-contrasena"
+                    className="block text-sm font-medium text-[#D5E3F4] mb-2"
+                  >
+                    Confirmar nueva contraseña
+                  </label>
+
+                  <input
+                    id="confirmar-contrasena"
+                    type={
+                      mostrarContrasenas
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={confirmarContrasena}
+                    onChange={(e) =>
+                      setConfirmarContrasena(e.target.value)
+                    }
+                    autoComplete="new-password"
+                    required
+                    disabled={cambiandoContrasena}
+                    className={inputClass}
+                  />
+                </div>
+
+                {/* MOSTRAR CONTRASEÑAS */}
+                <label className="flex items-center gap-2 text-sm text-[#B9C9DC] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mostrarContrasenas}
+                    onChange={(e) =>
+                      setMostrarContrasenas(e.target.checked)
+                    }
+                    disabled={cambiandoContrasena}
+                    className="w-4 h-4 accent-[#2563EB]"
+                  />
+                  Mostrar contraseñas
+                </label>
+
+                {/* ERROR */}
+                {errorContrasena && (
+                  <p
+                    role="alert"
+                    className="text-sm text-red-400 leading-relaxed"
+                  >
+                    {errorContrasena}
+                  </p>
+                )}
+
+                {/* BOTONES */}
+                <div className="grid grid-cols-2 gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={cerrarCambioContrasena}
+                    disabled={cambiandoContrasena}
+                    className="rounded-lg border border-[#36577A] bg-[#172A45] hover:bg-[#213B5D] py-3 text-sm font-semibold text-white cursor-pointer disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={cambiandoContrasena}
+                    className="rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] py-3 text-sm font-semibold text-white cursor-pointer disabled:opacity-50"
+                  >
+                    {cambiandoContrasena
+                      ? 'Guardando...'
+                      : 'Confirmar cambio'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
