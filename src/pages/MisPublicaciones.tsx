@@ -1099,6 +1099,7 @@ export default function MisPublicaciones() {
                                   <p className="text-xs text-[#91A5BF]">
                                     Pedido #{orden.id}
                                   </p>
+
                                   <span className={`text-xs font-semibold ${
                                     estado === 'entregada'
                                       ? 'text-emerald-300'
@@ -1110,12 +1111,40 @@ export default function MisPublicaciones() {
                                   </span>
                                 </div>
 
+                                {/* COMPRADOR: ENLACE A SU PERFIL */}
                                 <p className="mt-3 text-sm text-[#D5E3F4]">
                                   Comprador:{' '}
-                                  <span className="font-semibold text-white">
+                                  <Link
+                                    to={`/usuario/${encodeURIComponent(
+                                      orden.comprador_nombre_usuario
+                                    )}`}
+                                    className="font-semibold text-[#93C5FD] hover:text-white hover:underline"
+                                  >
                                     {orden.comprador_nombre_usuario}
-                                  </span>
+                                  </Link>
                                 </p>
+
+                                {/* ENVIAR MENSAJE AL COMPRADOR */}
+                                <Link
+                                  to={`/mensajes/${orden.comprador_id}?usuario=${encodeURIComponent(
+                                    orden.comprador_nombre_usuario
+                                  )}`}
+                                  state={{ from: '/mis-publicaciones' }}
+                                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#4B83D5] bg-[#213B5D] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#2A4B73]"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="w-5 h-5"
+                                  >
+                                    <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z" />
+                                  </svg>
+                                  Enviar mensaje al comprador
+                                </Link>
 
                                 {estado === 'confirmada' && (
                                   <>
@@ -1152,7 +1181,7 @@ export default function MisPublicaciones() {
                                 )}
 
                                 {estado === 'cancelada' && (
-                                  <p className="mt-3 text-xs text-[#A9BAD0]">
+                                  <p className="mt-3 text-xs text-[#91A5BF]">
                                     Esta compra fue cancelada.
                                   </p>
                                 )}
