@@ -488,7 +488,7 @@ export default function Perfil() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#ecf2ff] flex flex-col">
+    <div className="min-h-screen bg-[#0f172a] text-[#ecf2ff] flex flex-col" style={{ fontFamily: "'Inter', Arial, sans-serif" }}>
       {/* HEADER */}
       <Header
         actions={
@@ -500,7 +500,7 @@ export default function Perfil() {
       />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-5 sm:px-8 py-10">
-        <h1 className="text-3xl font-bold mb-9">
+        <h1 className="text-[28px] font-semibold mb-9">
           Mi perfil
         </h1>
 
@@ -566,7 +566,7 @@ export default function Perfil() {
 
               {/* COLUMNA DERECHA */}
               <section className="min-w-0 flex flex-col">
-                <h2 className="text-xl font-bold mb-8">
+                <h2 className="text-xl font-semibold mb-8">
                   Información de la cuenta
                 </h2>
 
@@ -824,7 +824,7 @@ export default function Perfil() {
             <div className="px-6 pt-5 pb-6">
               <h2
                 id="titulo-cambiar-contrasena"
-                className="text-xl font-bold text-white"
+                className="text-xl font-semibold text-white"
               >
                 Cambiar contraseña
               </h2>

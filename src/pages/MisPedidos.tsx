@@ -495,7 +495,7 @@ export default function MisPedidos() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col">
+    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col" style={{ fontFamily: "'Inter', Arial, sans-serif" }}>
       <Header
         busqueda={busqueda}
         onBusquedaChange={setBusqueda}
@@ -506,7 +506,7 @@ export default function MisPedidos() {
         {/* ENCABEZADO */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="text-2xl sm:text-[28px] font-semibold text-white">
               Mis pedidos
             </h1>
 
@@ -674,7 +674,7 @@ export default function MisPedidos() {
                       </span>
                     </div>
 
-                    <h2 className="font-display text-lg font-semibold text-white mt-3">
+                    <h2 className="text-[14px] font-medium tracking-[-0.01em] text-white mt-3">
                       {pedido.titulo}
                     </h2>
 

@@ -44,6 +44,7 @@ export default function Header({
         py-3
         grid
         grid-cols-[auto_minmax(0,1fr)_auto]
+        lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)_minmax(0,1fr)]
         items-center
         gap-3 sm:gap-5
         sticky top-0 z-30
@@ -54,7 +55,7 @@ export default function Header({
       {/* LOGO PILCHED - MISMO TAMAÑO EN TODAS LAS PÁGINAS */}
       <Link
         to="/"
-        className="flex items-center shrink-0"
+        className="flex items-center justify-self-start shrink-0"
         aria-label="Ir al inicio de Pilched"
       >
         <img
@@ -65,7 +66,7 @@ export default function Header({
       </Link>
 
       {/* BUSCADOR CENTRADO */}
-      <div className="min-w-0 flex justify-center">
+      <div className="w-full min-w-0 flex justify-center">
         {mostrarBuscadorFinal && (
           <div className="relative w-full max-w-[440px]">
 
@@ -112,12 +113,12 @@ export default function Header({
         )}
       </div>
 
-      {/* ACCIONES Y MENÚ */}
-      <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+      {/* ACCIONES Y MENÚ HAMBURGUESA */}
+      <div className="flex items-center justify-end justify-self-end gap-2 sm:gap-3 min-w-0">
 
         {/* BOTONES DE ACCIONES */}
         {mostrarAccionesFinal && (
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {actions}
           </div>
         )}

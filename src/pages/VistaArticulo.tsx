@@ -30,6 +30,14 @@ interface UsuarioPublico {
   nombre_usuario: string;
 }
 
+function formatearFecha(fecha: string) {
+  const valor = new Date(fecha);
+
+  return Number.isNaN(valor.getTime())
+    ? 'Fecha no disponible'
+    : valor.toLocaleDateString('es-AR');
+}
+
 export default function VistaArticulo() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -37,8 +45,7 @@ export default function VistaArticulo() {
   const [prenda, setPrenda] = useState<Prenda | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  const [mostrarDetalles, setMostrarDetalles] =
-    useState(false);
+  const [mostrarDetalles, setMostrarDetalles] = useState(false);
 
   const [resenas, setResenas] =
     useState<ResumenResenas | null>(null);
@@ -54,6 +61,7 @@ export default function VistaArticulo() {
     useState(false);
   const [errorReporte, setErrorReporte] = useState('');
 
+  // CARGAR INFORMACIÓN DE LA PRENDA
   useEffect(() => {
     if (!id) {
       setPrenda(null);
@@ -105,9 +113,7 @@ export default function VistaArticulo() {
         setResenas(null);
 
         const respuesta = await fetch(
-          `${API_URL}/productos/${encodeURIComponent(
-            id!
-          )}/resenas`
+          `${API_URL}/productos/${encodeURIComponent(id!)}/resenas`
         );
 
         if (!respuesta.ok) {
@@ -222,16 +228,6 @@ export default function VistaArticulo() {
     }
   }
 
-  function formatearFecha(fecha: string) {
-    const valor = new Date(fecha);
-
-    if (Number.isNaN(valor.getTime())) {
-      return 'Fecha no disponible';
-    }
-
-    return valor.toLocaleDateString('es-AR');
-  }
-
   function irAComprar() {
     if (!prenda) return;
 
@@ -305,9 +301,11 @@ export default function VistaArticulo() {
   return (
     <div className="min-h-dvh bg-[#0D1628] text-[#E7ECF5]">
       <main className="max-w-7xl mx-auto px-5 sm:px-8 py-6">
+
+        {/* VOLVER */}
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm text-[#A9BAD0] hover:text-white transition-colors mb-7"
+          className="inline-flex items-center gap-2 text-sm text-[#A9BAD0] hover:text-white transition-colors mb-6"
         >
           <span className="w-9 h-9 rounded-full bg-[#172A45] flex items-center justify-center">
             <svg
@@ -327,7 +325,7 @@ export default function VistaArticulo() {
           Volver a publicaciones
         </Link>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 items-start">
           {/* IMAGEN */}
           <div className="w-full aspect-square max-h-[65vh] bg-[#102039] border border-[#294768] rounded-xl overflow-hidden flex items-center justify-center">
             {prenda.imagenes[0] ? (
@@ -345,7 +343,16 @@ export default function VistaArticulo() {
 
           {/* DATOS DE LA PRENDA */}
           <div className="flex flex-col min-w-0">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl text-white leading-tight">
+
+            {/* TÍTULO CON INTER */}
+            <h1
+              className="text-[22px] sm:text-2xl text-white leading-snug"
+              style={{
+                fontFamily: "'Inter', Arial, sans-serif",
+                fontWeight: 600,
+                letterSpacing: '-0.015em',
+              }}
+            >
               {prenda.titulo}
             </h1>
 
@@ -353,7 +360,7 @@ export default function VistaArticulo() {
               {prenda.marca}
             </p>
 
-            <p className="text-white font-bold text-3xl sm:text-4xl mt-5">
+            <p className="text-white font-bold text-3xl sm:text-4xl mt-4">
               ${precioFormateado}
             </p>
 
@@ -382,8 +389,8 @@ export default function VistaArticulo() {
             )}
 
             {/* CARACTERÍSTICAS PRINCIPALES */}
-            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl mt-6 px-5">
-              <div className="flex items-center gap-4 py-4 border-b border-[#253854]">
+            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl mt-5 px-5">
+              <div className="flex items-center gap-4 py-3.5 border-b border-[#253854]">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -407,7 +414,7 @@ export default function VistaArticulo() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 py-4">
+              <div className="flex items-center gap-4 py-3.5">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -433,8 +440,8 @@ export default function VistaArticulo() {
               </div>
             </div>
 
-            {/* ACCIONES INDEPENDIENTES */}
-            <div className="grid grid-cols-2 gap-3 mt-6">
+            {/* ACCIONES DE COMPRA */}
+            <div className="grid grid-cols-2 gap-3 mt-5">
               <button
                 type="button"
                 onClick={irAComprar}
@@ -463,8 +470,105 @@ export default function VistaArticulo() {
               Enviar mensaje
             </button>
 
-            {/* DETALLES */}
-            <div className="mt-7 border-t border-[#294768] pt-4">
+            {/* CALIFICACIONES DE COMPRADORES */}
+            <section
+              id="resenas-prenda"
+              className="mt-6 bg-[#0E1D32] border border-[#294768] rounded-xl p-4 sm:p-5 scroll-mt-6"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 className="font-display text-base sm:text-lg font-semibold text-white">
+                  Calificaciones de compradores
+                </h2>
+
+                {resenas && resenas.cantidad > 0 && (
+                  <span className="text-sm text-[#D5E3F4]">
+                    <span className="text-amber-400">
+                      ★
+                    </span>{' '}
+                    {resenas.promedio?.toLocaleString('es-AR')}{' '}
+                    · {resenas.cantidad}
+                  </span>
+                )}
+              </div>
+
+              {cargandoResenas ? (
+                <p className="text-sm text-[#A9BAD0]">
+                  Cargando calificaciones...
+                </p>
+              ) : errorResenas ? (
+                <p className="text-sm text-red-400">
+                  {errorResenas}
+                </p>
+              ) : !resenas || resenas.resenas.length === 0 ? (
+                <p className="text-sm text-[#A9BAD0]">
+                  Esta prenda todavía no tiene calificaciones
+                  de compradores.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {resenas.resenas.map((resena) => (
+                    <article
+                      key={resena.id}
+                      className="bg-[#152943] border border-[#294768] rounded-lg p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[#172A45] border border-[#294768] overflow-hidden flex items-center justify-center shrink-0">
+                          {resena.foto_perfil ? (
+                            <img
+                              src={resena.foto_perfil}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[#A9BAD0]">
+                              {resena.nombre_usuario
+                                .charAt(0)
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {resena.nombre_usuario}
+                          </p>
+
+                          <p className="text-xs text-[#91A5BF]">
+                            {formatearFecha(resena.fecha)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        className="flex items-center gap-1 text-amber-400 text-lg mt-3"
+                        aria-label={`${resena.estrellas} de 5 estrellas`}
+                      >
+                        {[1, 2, 3, 4, 5].map((numero) => (
+                          <span key={numero}>
+                            {numero <= resena.estrellas
+                              ? '★'
+                              : '☆'}
+                          </span>
+                        ))}
+                      </div>
+
+                      {resena.comentario && (
+                        <p className="text-sm text-[#D5E3F4] mt-2 whitespace-pre-line">
+                          {resena.comentario}
+                        </p>
+                      )}
+
+                      <span className="inline-block mt-3 text-xs text-[#93C5FD] bg-[#172A45] rounded-full px-3 py-1">
+                        Compra verificada
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* MÁS INFORMACIÓN */}
+            <div className="mt-6 border-t border-[#294768] pt-4">
               <button
                 type="button"
                 onClick={() =>
@@ -504,8 +608,7 @@ export default function VistaArticulo() {
                       </span>
 
                       <span className="text-[#E7ECF5] text-right">
-                        {detalle.valor ||
-                          'No especificado'}
+                        {detalle.valor || 'No especificado'}
                       </span>
                     </div>
                   ))}
@@ -525,7 +628,7 @@ export default function VistaArticulo() {
             </div>
 
             {/* VENDEDOR */}
-            <div className="flex items-center gap-3 mt-8">
+            <div className="flex items-center gap-3 mt-7">
               <div className="w-11 h-11 rounded-full bg-[#172A45] border border-[#294768] flex items-center justify-center text-[#A9BAD0]">
                 <svg
                   viewBox="0 0 24 24"
@@ -581,108 +684,6 @@ export default function VistaArticulo() {
             </div>
           </div>
         </div>
-
-        {/* RESEÑAS VERIFICADAS */}
-        <section
-          id="resenas-prenda"
-          className="mt-12 border-t border-[#294768] pt-8 scroll-mt-6"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <h2 className="font-display text-xl font-bold text-white">
-              Calificaciones de compradores
-            </h2>
-
-            {resenas && resenas.cantidad > 0 && (
-              <span className="text-sm text-[#D5E3F4]">
-                <span className="text-amber-400">
-                  ★
-                </span>{' '}
-                {resenas.promedio?.toLocaleString('es-AR')}{' '}
-                · {resenas.cantidad}{' '}
-                {resenas.cantidad === 1
-                  ? 'reseña'
-                  : 'reseñas'}
-              </span>
-            )}
-          </div>
-
-          {cargandoResenas ? (
-            <p className="text-sm text-[#A9BAD0]">
-              Cargando calificaciones...
-            </p>
-          ) : errorResenas ? (
-            <p className="text-sm text-red-400">
-              {errorResenas}
-            </p>
-          ) : !resenas || resenas.resenas.length === 0 ? (
-            <div className="bg-[#0E1D32] border border-[#294768] rounded-xl p-6">
-              <p className="text-sm text-[#A9BAD0]">
-                Esta prenda todavía no tiene
-                calificaciones de compradores.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {resenas.resenas.map((resena) => (
-                <article
-                  key={resena.id}
-                  className="bg-[#0E1D32] border border-[#294768] rounded-xl p-5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#172A45] border border-[#294768] overflow-hidden flex items-center justify-center shrink-0">
-                      {resena.foto_perfil ? (
-                        <img
-                          src={resena.foto_perfil}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[#A9BAD0]">
-                          {resena.nombre_usuario
-                            .charAt(0)
-                            .toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {resena.nombre_usuario}
-                      </p>
-
-                      <p className="text-xs text-[#91A5BF]">
-                        {formatearFecha(resena.fecha)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-center gap-1 text-amber-400 text-xl mt-4"
-                    aria-label={`${resena.estrellas} de 5 estrellas`}
-                  >
-                    {[1, 2, 3, 4, 5].map((numero) => (
-                      <span key={numero}>
-                        {numero <= resena.estrellas
-                          ? '★'
-                          : '☆'}
-                      </span>
-                    ))}
-                  </div>
-
-                  {resena.comentario && (
-                    <p className="text-sm text-[#D5E3F4] mt-3 whitespace-pre-line">
-                      {resena.comentario}
-                    </p>
-                  )}
-
-                  <span className="inline-block mt-4 text-xs text-[#93C5FD] bg-[#172A45] rounded-full px-3 py-1">
-                    Compra verificada
-                  </span>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
       </main>
 
       {/* MODAL DE REPORTE */}

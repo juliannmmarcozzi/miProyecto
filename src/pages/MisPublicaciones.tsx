@@ -780,7 +780,7 @@ export default function MisPublicaciones() {
   const operacionesCargando = cargandoOrdenes || cargandoOfertas;
 
   return (
-    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col">
+    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col" style={{ fontFamily: "'Inter', Arial, sans-serif" }}>
       <Header
         busqueda={busqueda}
         onBusquedaChange={setBusqueda}
@@ -790,7 +790,7 @@ export default function MisPublicaciones() {
       <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-7">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">
+            <h1 className="text-2xl font-semibold text-white">
               Mis publicaciones
             </h1>
 
@@ -960,7 +960,7 @@ export default function MisPublicaciones() {
 
                   {/* DETALLES */}
                   <div className="p-4 flex flex-col flex-1">
-                    <h2 className="font-display font-semibold text-white truncate">
+                    <h2 className="text-[14px] font-medium tracking-[-0.01em] text-white truncate">
                       {publicacion.titulo}
                     </h2>
 

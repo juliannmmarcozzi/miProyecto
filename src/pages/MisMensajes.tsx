@@ -207,7 +207,7 @@ export default function MisMensajes() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col">
+    <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col" style={{ fontFamily: "'Inter', Arial, sans-serif" }}>
       <Header mostrarBusqueda={false} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-5 sm:px-8 pt-10 pb-16">
@@ -215,7 +215,7 @@ export default function MisMensajes() {
         {/* TÍTULO Y NAVEGACIÓN */}
         <div className="flex items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="text-2xl sm:text-[28px] font-semibold text-white">
               Mis mensajes
             </h1>
 
@@ -354,8 +354,8 @@ export default function MisMensajes() {
                       <span
                         className={`text-base truncate ${
                           tieneSinLeer
-                            ? 'font-bold text-white'
-                            : 'font-semibold text-[#E7ECF5]'
+                            ? 'font-semibold text-white'
+                            : 'font-medium text-[#E7ECF5]'
                         }`}
                       >
                         {conversacion.nombre_usuario}

@@ -1,9 +1,9 @@
 
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import ReportarModal from './../components/ReportarModal';
+import ReportarModal from '../components/ReportarModal';
 
 interface Perfil {
   id: number;
@@ -44,14 +44,21 @@ interface ResenaVendedor {
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+function formatearFecha(fecha: string) {
+  const valor = new Date(fecha);
+
+  return Number.isNaN(valor.getTime())
+    ? 'Fecha no disponible'
+    : valor.toLocaleDateString('es-AR');
+}
+
 export default function PerfilUsuario() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [perfil, setPerfil] = useState<Perfil | null>(null);
-  const [publicaciones, setPublicaciones] =
-    useState<Publicacion[]>([]);
-  const [resenas, setResenas] =
-    useState<ResenaVendedor[]>([]);
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
+  const [resenas, setResenas] = useState<ResenaVendedor[]>([]);
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -112,16 +119,17 @@ export default function PerfilUsuario() {
               if (activo) {
                 setEsMiPerfil(
                   Number(datosYo.usuario?.id) ===
-                    Number(datosPerfil.id)
+                  Number(datosPerfil.id)
                 );
               }
             }
           } catch {
-            // El perfil público debe seguir funcionando
+            // El perfil público sigue funcionando
             // aunque no se pueda consultar la sesión.
           }
         }
 
+        // CARGAR PUBLICACIONES
         const respuestaPublicaciones = await fetch(
           `${API_URL}/publicaciones/${datosPerfil.id}`,
           {
@@ -196,16 +204,6 @@ export default function PerfilUsuario() {
     };
   }, [id]);
 
-  function formatearFecha(fecha: string) {
-    const valor = new Date(fecha);
-
-    if (Number.isNaN(valor.getTime())) {
-      return 'Fecha no disponible';
-    }
-
-    return valor.toLocaleDateString('es-AR');
-  }
-
   return (
     <div className="min-h-screen bg-[#0D1628] text-[#E7ECF5] flex flex-col">
       <Header mostrarBusqueda={false} />
@@ -225,7 +223,7 @@ export default function PerfilUsuario() {
 
             <Link
               to="/"
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg px-5 py-2.5 text-sm transition-colors"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg px-5 py-2.5 text-sm"
             >
               Volver al inicio
             </Link>
@@ -233,7 +231,7 @@ export default function PerfilUsuario() {
         ) : (
           <>
             {/* INFORMACIÓN DEL USUARIO */}
-            <section className="border-b border-[#253854] pb-6 mb-7">
+            <section className="border-b border-[#253854] pb-5 mb-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   {/* FOTO DE PERFIL */}
@@ -297,9 +295,10 @@ export default function PerfilUsuario() {
                     type="button"
                     onClick={() => {
                       if (!localStorage.getItem('token')) {
-                        window.location.assign('/login');
+                        navigate('/login');
                         return;
                       }
+
                       setMostrarReporte(true);
                     }}
                     className="border border-red-400/40 text-red-300 hover:bg-red-500/10 rounded-lg px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors"
@@ -310,8 +309,94 @@ export default function PerfilUsuario() {
               </div>
             </section>
 
+            {/* EXPERIENCIAS DE COMPRADORES */}
+            <section className="mb-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="font-display text-lg sm:text-xl font-semibold text-white">
+                    Experiencias de compradores
+                  </h2>
+
+                  <p className="text-xs text-[#91A5BF] mt-1">
+                    Opiniones de quienes compraron a este vendedor.
+                  </p>
+                </div>
+
+                <span className="text-xs text-[#A9BAD0] bg-[#172A45] border border-[#294768] rounded-full px-3 py-1.5">
+                  {resenas.length}{' '}
+                  {resenas.length === 1
+                    ? 'reseña'
+                    : 'reseñas'}
+                </span>
+              </div>
+
+              {errorResenas ? (
+                <p className="text-red-400 text-sm">
+                  {errorResenas}
+                </p>
+              ) : resenas.length === 0 ? (
+                <div className="bg-[#0E1D32] border border-[#294768] rounded-xl px-5 py-4">
+                  <p className="text-sm text-[#A9BAD0]">
+                    Este vendedor todavía no tiene experiencias
+                    de compra publicadas.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {resenas.map((resena) => (
+                    <article
+                      key={resena.id}
+                      className="bg-[#0E1D32] border border-[#294768] rounded-xl p-4 sm:p-5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#172A45] border border-[#294768] flex items-center justify-center shrink-0">
+                          {resena.comprador_foto_perfil ? (
+                            <img
+                              src={resena.comprador_foto_perfil}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[#A9BAD0]">
+                              {resena.comprador_nombre_usuario
+                                .charAt(0)
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">
+                            {resena.comprador_nombre_usuario}
+                          </p>
+
+                          <p className="text-xs text-[#91A5BF]">
+                            {formatearFecha(resena.fecha)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-sm text-[#D5E3F4] whitespace-pre-line">
+                        {resena.comentario}
+                      </p>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-[#93C5FD] bg-[#172A45] rounded-full px-3 py-1">
+                          Compra verificada
+                        </span>
+
+                        <span className="text-xs text-[#91A5BF]">
+                          {resena.titulo}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* PUBLICACIONES */}
-            <section>
+            <section className="border-t border-[#253854] pt-6">
               <h2 className="font-display text-lg sm:text-xl font-semibold text-white mb-5">
                 Publicaciones
               </h2>
@@ -372,7 +457,12 @@ export default function PerfilUsuario() {
                       <div className="p-4 flex flex-col flex-1">
                         <Link
                           to={`/prenda/${prenda.id}`}
-                          className="font-display font-semibold text-white hover:text-[#93C5FD] transition-colors truncate"
+                          className="text-[14px] leading-snug text-white hover:text-[#93C5FD] transition-colors line-clamp-2"
+                          style={{
+                            fontFamily: "'Inter', Arial, sans-serif",
+                            fontWeight: 500,
+                            letterSpacing: '-0.01em',
+                          }}
                         >
                           {prenda.titulo}
                         </Link>
@@ -410,86 +500,6 @@ export default function PerfilUsuario() {
                             Ver publicación
                           </Link>
                         </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* RESEÑAS DEL VENDEDOR */}
-            <section className="mt-12 border-t border-[#253854] pt-7">
-              <div className="flex items-center justify-between gap-4 mb-5">
-                <h2 className="font-display text-lg sm:text-xl font-semibold text-white">
-                  Experiencias de compradores
-                </h2>
-
-                <span className="text-xs text-[#A9BAD0]">
-                  {resenas.length}{' '}
-                  {resenas.length === 1
-                    ? 'reseña'
-                    : 'reseñas'}
-                </span>
-              </div>
-
-              {errorResenas ? (
-                <p className="text-red-400 text-sm">
-                  {errorResenas}
-                </p>
-              ) : resenas.length === 0 ? (
-                <div className="bg-[#0E1D32] border border-[#294768] rounded-xl p-6">
-                  <p className="text-sm text-[#A9BAD0]">
-                    Este vendedor todavía no tiene experiencias
-                    de compra publicadas.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {resenas.map((resena) => (
-                    <article
-                      key={resena.id}
-                      className="bg-[#0E1D32] border border-[#294768] rounded-xl p-5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#172A45] border border-[#294768] flex items-center justify-center shrink-0">
-                          {resena.comprador_foto_perfil ? (
-                            <img
-                              src={resena.comprador_foto_perfil}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-[#A9BAD0]">
-                              {resena.comprador_nombre_usuario
-                                .charAt(0)
-                                .toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            {resena.comprador_nombre_usuario}
-                          </p>
-
-                          <p className="text-xs text-[#91A5BF]">
-                            {formatearFecha(resena.fecha)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <p className="mt-4 text-sm text-[#D5E3F4] whitespace-pre-line">
-                        {resena.comentario}
-                      </p>
-
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-[#93C5FD] bg-[#172A45] rounded-full px-3 py-1">
-                          Compra verificada
-                        </span>
-
-                        <span className="text-xs text-[#91A5BF]">
-                          {resena.titulo}
-                        </span>
                       </div>
                     </article>
                   ))}
