@@ -131,7 +131,7 @@ export default function Login() {
                 <img
                   src="/togglepassword.svg"
                   alt=""
-                  className="w-5 h-5"
+                  className="w-5 h-5 brightness-0 invert"
                 />
               </button>
 
