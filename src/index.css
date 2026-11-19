@@ -15,18 +15,20 @@
 
 html {
   min-height: 100%;
-  background-color: #0f1b30;
+  background-color: #0D1628;
+  overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
-  background-color: #0f1b30;
+  background-color: #0D1628;
   color: #ffffff;
+  overscroll-behavior-y: none;
 }
 
 #root {
   min-height: 100vh;
-  background-color: #0f1b30;
+  background-color: #0D1628;
 }
