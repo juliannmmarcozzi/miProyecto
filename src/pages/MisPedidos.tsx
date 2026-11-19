@@ -7,7 +7,6 @@ import {
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -850,7 +849,6 @@ export default function MisPedidos() {
         )}
       </main>
 
-      <Footer />
 
       {/* POPUP PERSONALIZADO: CONFIRMAR RECEPCIÓN */}
       {pedidoPorConfirmar && (

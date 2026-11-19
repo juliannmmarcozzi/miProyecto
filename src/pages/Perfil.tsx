@@ -1,6 +1,5 @@
 
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 import HeaderActions from '../components/HeaderActions';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -770,7 +769,6 @@ export default function Perfil() {
         )}
       </main>
 
-      <Footer />
 
       {/* POPUP CAMBIAR CONTRASEÑA */}
       {mostrarCambioContrasena && (

@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { getPrendas, type Prenda } from '../features/browse/api/prendas';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 import HeaderActions from '../components/HeaderActions';
 import PostCard from '../features/browse/components/postCard';
 import FilterSidebar, {
@@ -195,8 +194,6 @@ export default function Browser() {
           </div>
         )}
       </main>
-
-      <Footer />
 
       <FilterSidebar
         open={filtersOpen}

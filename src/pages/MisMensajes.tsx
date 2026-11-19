@@ -9,7 +9,6 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -405,7 +404,6 @@ export default function MisMensajes() {
 
       </main>
 
-      <Footer />
     </div>
   );
 }
