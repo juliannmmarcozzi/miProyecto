@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import NavMenu from '../components/NavMenu';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const LOGO_URL = `${import.meta.env.BASE_URL}pilched.png`;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -61,18 +62,34 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#10182D] text-white">
-      <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
+      <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-24 sm:py-8">
 
+        {/* FONDO */}
         <img
           src="/image%204.png"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        <div className="absolute top-6 left-6 z-30">
+        {/* LOGO PILCHED ARRIBA A LA IZQUIERDA */}
+        <Link
+          to="/"
+          className="absolute top-6 left-6 sm:top-8 sm:left-10 z-20"
+          aria-label="Ir al inicio de Pilched"
+        >
+          <img
+            src={LOGO_URL}
+            alt="Pilched"
+            className="w-36 sm:w-48 h-auto object-contain"
+          />
+        </Link>
+
+        {/* MENÚ HAMBURGUESA ARRIBA A LA DERECHA */}
+        <div className="absolute top-6 right-6 z-30">
           <NavMenu />
         </div>
 
+        {/* FORMULARIO */}
         <div className="relative z-10 w-full max-w-[340px] min-h-[510px] bg-[#10182D] px-9 pt-16 pb-5 flex flex-col">
 
           <form

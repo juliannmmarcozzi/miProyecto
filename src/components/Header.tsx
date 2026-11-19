@@ -1,6 +1,6 @@
 
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import NavMenu from './NavMenu';
 
 interface HeaderProps {
@@ -11,6 +11,8 @@ interface HeaderProps {
   placeholderBusqueda?: string;
 }
 
+const LOGO_URL = `${import.meta.env.BASE_URL}pilched.png`;
+
 export default function Header({
   actions,
   busqueda,
@@ -20,10 +22,10 @@ export default function Header({
 }: HeaderProps) {
   const location = useLocation();
 
-  // En Mi perfil mostramos únicamente
-  // el menú hamburguesa.
-  const esMiPerfil =
-    location.pathname.replace(/\/+$/, '') === '/perfil';
+  const rutaActual =
+    location.pathname.replace(/\/+$/, '') || '/';
+
+  const esMiPerfil = rutaActual === '/perfil';
 
   const mostrarBuscadorFinal =
     !esMiPerfil && mostrarBusqueda;
@@ -32,26 +34,39 @@ export default function Header({
     !esMiPerfil && Boolean(actions);
 
   return (
-    <header className="bg-[#10192E] text-[#E7ECF5] px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4 sticky top-0 z-30 border-b border-[#253854]">
+    <header
+      className="
+        bg-[#10192E]
+        text-[#E7ECF5]
+        w-full
+        min-h-24
+        px-4 sm:px-6
+        py-3
+        grid
+        grid-cols-[auto_minmax(0,1fr)_auto]
+        items-center
+        gap-3 sm:gap-5
+        sticky top-0 z-30
+        border-b border-[#253854]
+      "
+    >
 
-      {/* MENÚ HAMBURGUESA */}
-      <div className="shrink-0">
-        <NavMenu />
-      </div>
-
-      {/* ESPACIO RESERVADO PARA EL FUTURO LOGO */}
-      {/* Solo visible en escritorio */}
-      {!esMiPerfil && (
-        <div
-          className="hidden lg:block w-28 shrink-0"
-          aria-hidden="true"
+      {/* LOGO PILCHED - MISMO TAMAÑO EN TODAS LAS PÁGINAS */}
+      <Link
+        to="/"
+        className="flex items-center shrink-0"
+        aria-label="Ir al inicio de Pilched"
+      >
+        <img
+          src={LOGO_URL}
+          alt="Pilched"
+          className="w-36 sm:w-44 lg:w-48 h-auto object-contain"
         />
-      )}
+      </Link>
 
       {/* BUSCADOR CENTRADO */}
-      {mostrarBuscadorFinal && (
-        <div className="flex-1 min-w-0 flex justify-center">
-
+      <div className="min-w-0 flex justify-center">
+        {mostrarBuscadorFinal && (
           <div className="relative w-full max-w-[440px]">
 
             {/* ÍCONO DE BÚSQUEDA */}
@@ -78,25 +93,41 @@ export default function Header({
               }
               readOnly={!onBusquedaChange}
               aria-label={placeholderBusqueda}
-              className="w-full min-w-0 bg-[#0B192D] border border-[#294768] placeholder-[#91A5BF] text-[#E7ECF5] text-sm rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-[#4B83D5] transition-colors"
+              className="
+                w-full min-w-0
+                bg-[#0B192D]
+                border border-[#294768]
+                placeholder-[#91A5BF]
+                text-[#E7ECF5]
+                text-sm
+                rounded-xl
+                pl-11 pr-4 py-3
+                focus:outline-none
+                focus:border-[#4B83D5]
+                transition-colors
+              "
             />
 
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* ESPACIO FLEXIBLE PARA PÁGINAS SIN BUSCADOR */}
-      {!mostrarBuscadorFinal &&
-        !esMiPerfil && (
-          <div className="flex-1 min-w-0" />
+      {/* ACCIONES Y MENÚ */}
+      <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+
+        {/* BOTONES DE ACCIONES */}
+        {mostrarAccionesFinal && (
+          <div className="flex items-center gap-2 sm:gap-3">
+            {actions}
+          </div>
         )}
 
-      {/* BOTONES DE ACCIONES */}
-      {mostrarAccionesFinal && (
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
-          {actions}
+        {/* MENÚ HAMBURGUESA */}
+        <div className="shrink-0">
+          <NavMenu />
         </div>
-      )}
+
+      </div>
 
     </header>
   );

@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useRef,
@@ -11,7 +10,9 @@ import { createPost } from '../api/prendas';
 import { subirImagen } from '../../../lib/subirImagen';
 
 const API_URL =
-  import.meta.env.VITE_API_URL
+  import.meta.env.VITE_API_URL;
+
+const MAX_FOTOS_MANUALES = 6;
 
 type Pantalla = 'seleccion' | 'manual' | 'ia';
 
@@ -147,7 +148,6 @@ export default function CreatePostModal({
   const [resultadoIA, setResultadoIA] =
     useState<ResultadoIA | null>(null);
 
-  // DESPLEGABLE Y EDICIÓN IA
   const [mostrarDatosIA, setMostrarDatosIA] =
     useState(false);
 
@@ -178,7 +178,6 @@ export default function CreatePostModal({
     pantalla === 'ia' &&
     !editarManualmente;
 
-  // PREVIEWS
   useEffect(() => {
     const urls = fotosManuales.map((archivo) =>
       URL.createObjectURL(archivo)
@@ -265,7 +264,24 @@ export default function CreatePostModal({
 
     try {
       archivos.forEach(validarImagen);
-      setFotosManuales(archivos);
+
+      setFotosManuales((anteriores) => {
+        const combinadas = [
+          ...anteriores,
+          ...archivos,
+        ];
+
+        if (
+          combinadas.length > MAX_FOTOS_MANUALES
+        ) {
+          throw new Error(
+            `Podés subir hasta ${MAX_FOTOS_MANUALES} fotos por publicación.`
+          );
+        }
+
+        return combinadas;
+      });
+
       setError('');
     } catch (err) {
       setError(
@@ -273,8 +289,15 @@ export default function CreatePostModal({
           ? err.message
           : 'No se pudieron seleccionar las fotos.'
       );
+    } finally {
       e.target.value = '';
     }
+  }
+
+  function eliminarFotoManual(index: number) {
+    setFotosManuales((anteriores) =>
+      anteriores.filter((_, i) => i !== index)
+    );
   }
 
   function seleccionarFotoPrendaIA(
@@ -323,7 +346,6 @@ export default function CreatePostModal({
     }
   }
 
-  // ANÁLISIS REAL
   async function analizarConIA() {
     if (ocupado) return;
 
@@ -410,7 +432,7 @@ export default function CreatePostModal({
       if (!res.ok) {
         throw new Error(
           respuesta.error ||
-          `Error al analizar la prenda (${res.status}).`
+            `Error al analizar la prenda (${res.status}).`
         );
       }
 
@@ -424,7 +446,6 @@ export default function CreatePostModal({
 
       setResultadoIA(resultado);
 
-      // COMPLETAR LOS CAMPOS QUE DEVUELVE NODE
       setDatos((anteriores) => ({
         ...anteriores,
         tipoPrenda: convertirTexto(
@@ -443,8 +464,6 @@ export default function CreatePostModal({
 
       setAnalizado(true);
       setMostrarDatosIA(true);
-
-      // Tras cada análisis, volver a bloquear.
       setEditarManualmente(false);
 
       setMensajeIA(
@@ -468,7 +487,6 @@ export default function CreatePostModal({
     }
   }
 
-  // VALIDACIÓN
   function validarDatos(): string | null {
     const obligatorios: Array<
       [keyof DatosPrenda, string]
@@ -501,7 +519,6 @@ export default function CreatePostModal({
           ].includes(campo)
         ) {
           setMostrarDatosIA(true);
-
           setEditarManualmente(true);
         }
 
@@ -529,7 +546,6 @@ export default function CreatePostModal({
     return null;
   }
 
-  // PUBLICAR
   async function handleSubmit(
     e: FormEvent<HTMLFormElement>
   ) {
@@ -606,13 +622,17 @@ export default function CreatePostModal({
         );
       }
 
-      let urlPrincipal = '';
+      let imagenes: string[] = [];
 
       if (pantalla === 'manual') {
-        urlPrincipal = await subirImagen(
-          fotosManuales[0]
+        imagenes = await Promise.all(
+          fotosManuales.map((foto) =>
+            subirImagen(foto)
+          )
         );
       } else {
+        let urlPrincipal = '';
+
         const guardadas =
           fotosSubidasRef.current;
 
@@ -626,11 +646,19 @@ export default function CreatePostModal({
             fotoPrendaIA
           );
         }
+
+        if (!urlPrincipal) {
+          throw new Error(
+            'No se pudo obtener la imagen principal.'
+          );
+        }
+
+        imagenes = [urlPrincipal];
       }
 
-      if (!urlPrincipal) {
+      if (imagenes.length === 0) {
         throw new Error(
-          'No se pudo obtener la imagen principal.'
+          'No se pudo obtener ninguna imagen para la publicación.'
         );
       }
 
@@ -639,7 +667,7 @@ export default function CreatePostModal({
           titulo: datos.titulo.trim(),
           descripcion: datos.descripcion.trim(),
           precio: Number(datos.precio),
-          imagenes: [urlPrincipal],
+          imagenes,
           tipoPrenda: datos.tipoPrenda.trim(),
           marca: datos.marca.trim(),
           color: datos.color.trim(),
@@ -668,7 +696,6 @@ export default function CreatePostModal({
     }
   }
 
-  // CAMPO DE TEXTO
   function input(
     campo: keyof DatosPrenda,
     placeholder: string,
@@ -711,13 +738,10 @@ export default function CreatePostModal({
     );
   }
 
-  // CAMPOS IA: BLOQUEADOS POR DEFECTO
   function camposIA() {
     return (
       <div className="flex flex-col gap-4">
-
         <div className="flex flex-wrap items-center justify-between gap-3">
-
           <div>
             <p className="text-xs text-[#91A5BF]">
               {analizado
@@ -777,7 +801,6 @@ export default function CreatePostModal({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-
           <div>
             <label className={labelClass}>
               Color *
@@ -807,7 +830,6 @@ export default function CreatePostModal({
 
         {resultadoIA?.subcategoria && (
           <div className="bg-[#102039] border border-[#294768] rounded-lg p-3">
-
             <p className="text-xs text-[#91A5BF]">
               Subcategoría detectada
             </p>
@@ -820,7 +842,6 @@ export default function CreatePostModal({
 
         {resultadoIA?.detalles && (
           <div className="bg-[#102039] border border-[#294768] rounded-lg p-3">
-
             <p className="text-xs text-[#91A5BF]">
               Detalles detectados
             </p>
@@ -844,18 +865,15 @@ export default function CreatePostModal({
             </button>
           </div>
         )}
-
       </div>
     );
   }
 
-  // CAMPOS MANUALES SIEMPRE VISIBLES
   function camposManuales(
     soloPendientesIA = false
   ) {
     return (
       <div className="flex flex-col gap-4">
-
         {soloPendientesIA && (
           <div className="border-t border-[#294768] pt-5">
             <h3 className="text-base font-semibold text-white">
@@ -945,7 +963,6 @@ export default function CreatePostModal({
         )}
 
         <div className="grid grid-cols-2 gap-3">
-
           <div>
             <label className={labelClass}>
               Estado *
@@ -1017,7 +1034,6 @@ export default function CreatePostModal({
         </div>
 
         <div className="border-t border-[#294768] pt-5 mt-2">
-
           <h3 className="text-base font-semibold text-white">
             Datos para recibir pagos
           </h3>
@@ -1048,7 +1064,6 @@ export default function CreatePostModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-
       <div
         role="dialog"
         aria-modal="true"
@@ -1060,8 +1075,6 @@ export default function CreatePostModal({
             : 'max-w-5xl max-h-[90dvh]')
         }
       >
-
-        {/* CERRAR */}
         <button
           type="button"
           onClick={onClose}
@@ -1072,10 +1085,8 @@ export default function CreatePostModal({
           ✕
         </button>
 
-        {/* SELECCIÓN DE MODO */}
         {pantalla === 'seleccion' && (
           <div className="p-6 sm:p-9 flex flex-col gap-5 max-h-[90dvh] overflow-y-auto">
-
             <h2 className="text-2xl font-bold text-white pr-10">
               ¿Cómo querés publicar tu prenda?
             </h2>
@@ -1125,17 +1136,13 @@ export default function CreatePostModal({
           </div>
         )}
 
-        {/* FORMULARIO */}
         {pantalla !== 'seleccion' && (
           <form
             onSubmit={handleSubmit}
             noValidate
             className="flex flex-col md:flex-row max-h-[90dvh] overflow-y-auto md:overflow-hidden"
           >
-
-            {/* COLUMNA IZQUIERDA */}
             <div className="w-full md:w-1/2 md:shrink-0 bg-[#102039] border-b md:border-b-0 md:border-r border-[#294768] flex flex-col p-5 gap-4 md:max-h-[90dvh] md:overflow-y-auto">
-
               <button
                 type="button"
                 onClick={() =>
@@ -1149,48 +1156,117 @@ export default function CreatePostModal({
 
               {pantalla === 'manual' ? (
                 <>
-                  <h3 className="text-lg font-semibold text-white">
-                    Fotos de la prenda
-                  </h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-semibold text-white">
+                      Fotos de la prenda
+                    </h3>
 
-                  <label className="min-h-56 md:min-h-80 bg-[#152943] rounded-lg border border-dashed border-[#45617F] cursor-pointer flex flex-col items-center justify-center text-center p-5 hover:border-blue-400">
+                    <span className="text-xs text-[#91A5BF]">
+                      {fotosManuales.length}/
+                      {MAX_FOTOS_MANUALES} fotos
+                    </span>
+                  </div>
 
-                    {previewsManuales.length > 0 ? (
-                      <div className="w-full grid grid-cols-2 gap-2">
-                        {previewsManuales.map(
-                          (url, index) => (
-                            <img
-                              key={url}
-                              src={url}
-                              alt={`Foto ${index + 1}`}
-                              className="w-full h-32 object-contain bg-[#0B192D] rounded"
-                            />
-                          )
-                        )}
+                  <input
+                    id="fotos-manuales"
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={
+                      seleccionarFotosManuales
+                    }
+                    disabled={ocupado}
+                    className="hidden"
+                  />
+
+                  {previewsManuales.length > 0 ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="relative w-full aspect-[4/5] bg-[#152943] rounded-xl overflow-hidden border border-[#294768]">
+                        <img
+                          src={previewsManuales[0]}
+                          alt="Foto principal"
+                          className="w-full h-full object-cover"
+                        />
+
+                        <div className="absolute left-3 top-3 bg-[#0B192D]/90 text-white text-xs px-3 py-1 rounded-full border border-[#294768]">
+                          Foto principal
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            eliminarFotoManual(0)
+                          }
+                          disabled={ocupado}
+                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer disabled:opacity-50"
+                          aria-label="Eliminar foto principal"
+                        >
+                          ✕
+                        </button>
                       </div>
-                    ) : (
+
+                      {previewsManuales.length > 1 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {previewsManuales
+                            .slice(1)
+                            .map((url, index) => (
+                              <div
+                                key={url}
+                                className="relative aspect-square bg-[#152943] rounded-lg overflow-hidden border border-[#294768]"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Foto ${index + 2}`}
+                                  className="w-full h-full object-cover"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    eliminarFotoManual(
+                                      index + 1
+                                    )
+                                  }
+                                  disabled={ocupado}
+                                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white text-sm flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                  aria-label={`Eliminar foto ${index + 2}`}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {fotosManuales.length <
+                        MAX_FOTOS_MANUALES && (
+                        <label
+                          htmlFor="fotos-manuales"
+                          className="w-full bg-[#152943] border border-dashed border-[#45617F] rounded-lg py-3 px-4 text-center text-[#B7C7DD] hover:border-blue-400 cursor-pointer"
+                        >
+                          Agregar más fotos
+                        </label>
+                      )}
+
+                      <p className="text-xs text-[#91A5BF] leading-relaxed">
+                        La primera imagen será la
+                        portada de la publicación.
+                      </p>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="fotos-manuales"
+                      className="min-h-56 md:min-h-80 bg-[#152943] rounded-lg border border-dashed border-[#45617F] cursor-pointer flex flex-col items-center justify-center text-center p-5 hover:border-blue-400"
+                    >
                       <p className="text-[#B7C7DD]">
                         Subir fotos de la prenda
                       </p>
-                    )}
 
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={
-                        seleccionarFotosManuales
-                      }
-                      disabled={ocupado}
-                      className="hidden"
-                    />
-                  </label>
-
-                  {fotosManuales.length > 1 && (
-                    <p className="text-xs text-[#91A5BF]">
-                      Por ahora solo se guarda
-                      la primera foto.
-                    </p>
+                      <p className="text-xs text-[#91A5BF] mt-2">
+                        Podés subir hasta{' '}
+                        {MAX_FOTOS_MANUALES} fotos
+                      </p>
+                    </label>
                   )}
                 </>
               ) : (
@@ -1204,19 +1280,17 @@ export default function CreatePostModal({
                     y otra de su etiqueta.
                   </p>
 
-                  {/* FOTO PRENDA */}
                   <div>
                     <p className="text-sm text-[#C0CDE0] mb-2">
                       1. Foto de la prenda *
                     </p>
 
                     <label className="h-44 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden">
-
                       {previewPrendaIA ? (
                         <img
                           src={previewPrendaIA}
                           alt="Foto de la prenda"
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <p className="text-[#A9BAD0]">
@@ -1236,19 +1310,17 @@ export default function CreatePostModal({
                     </label>
                   </div>
 
-                  {/* FOTO ETIQUETA */}
                   <div>
                     <p className="text-sm text-[#C0CDE0] mb-2">
                       2. Foto de la etiqueta *
                     </p>
 
                     <label className="h-40 bg-[#152943] border border-dashed border-[#45617F] rounded-lg flex items-center justify-center cursor-pointer overflow-hidden">
-
                       {previewEtiquetaIA ? (
                         <img
                           src={previewEtiquetaIA}
                           alt="Foto de la etiqueta"
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-contain bg-[#0B192D]"
                         />
                       ) : (
                         <p className="text-[#A9BAD0]">
@@ -1268,7 +1340,6 @@ export default function CreatePostModal({
                     </label>
                   </div>
 
-                  {/* ANALIZAR */}
                   <button
                     type="button"
                     onClick={analizarConIA}
@@ -1298,9 +1369,7 @@ export default function CreatePostModal({
               )}
             </div>
 
-            {/* COLUMNA DERECHA */}
             <div className="w-full md:w-1/2 min-w-0 p-5 sm:p-6 flex flex-col gap-4 md:max-h-[90dvh] md:overflow-y-auto">
-
               <h2 className="font-display font-bold text-xl text-white mb-2 pr-10">
                 Publicar prenda
               </h2>
@@ -1344,7 +1413,6 @@ export default function CreatePostModal({
                     </div>
                   )}
 
-                  {/* FUERA DEL DESPLEGABLE */}
                   {camposManuales(true)}
                 </>
               ) : (
